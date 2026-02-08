@@ -93,8 +93,29 @@ export default function DashboardPage() {
 
     const userInitials = userData?.user?.username?.substring(0, 2).toUpperCase() || 'GU';
 
+    // Check if username needs to be set
+    const needsUsername = userData?.user?.username &&
+        (userData.user.username === userData.user.email?.split('@')[0] ||
+            userData.user.username.includes('@'));
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Username Setup Banner */}
+            {needsUsername && (
+                <Link
+                    href="/dashboard/profile"
+                    className="block rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 hover:bg-yellow-500/15 transition-colors"
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-yellow-600 dark:text-yellow-400">Set up your username</h3>
+                            <p className="text-sm text-muted-foreground">Choose a unique username to appear on the leaderboard</p>
+                        </div>
+                        <span className="text-yellow-600 dark:text-yellow-400 font-medium text-sm">Set up →</span>
+                    </div>
+                </Link>
+            )}
+
             {/* Welcome Section */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>

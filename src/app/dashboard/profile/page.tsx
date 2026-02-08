@@ -99,6 +99,18 @@ export default function ProfilePage() {
     const userInitials = userData?.user?.username?.substring(0, 2).toUpperCase() || 'GU';
     const hasProgress = userData?.stats?.totalAttempts && userData.stats.totalAttempts > 0;
 
+    // Check if username needs to be set (looks like email prefix)
+    const needsUsername = userData?.user?.username &&
+        (userData.user.username === userData.user.email?.split('@')[0] ||
+            userData.user.username.includes('@'));
+
+    // Auto-open edit mode if no proper username
+    useEffect(() => {
+        if (needsUsername && !loading) {
+            setIsEditing(true);
+        }
+    }, [needsUsername, loading]);
+
     // Prepare radar data from actual subject stats
     const radarData = subjectStats.length > 0
         ? subjectStats.map(s => ({
