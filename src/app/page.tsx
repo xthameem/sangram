@@ -14,15 +14,13 @@ const supabase = createClient(
 
 // Get the correct site URL for OAuth redirects
 const getSiteUrl = () => {
-  // In production, use environment variable
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
-  }
-  // Fallback for Vercel deployments
-  if (typeof window !== 'undefined') {
+  // Always use the production Vercel URL for OAuth
+  // This prevents redirecting to localhost
+  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
     return window.location.origin;
   }
-  return 'https://sangram.vercel.app';
+  // Production URL - update this to match your Vercel domain
+  return 'https://sangram-delta.vercel.app';
 };
 
 export default function AuthPage() {
