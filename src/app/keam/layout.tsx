@@ -1,6 +1,6 @@
 import Header from '@/components/layout/Header';
 
-export default function DashboardLayout({
+export default function KEAMLayout({
     children,
 }: {
     children: React.ReactNode;

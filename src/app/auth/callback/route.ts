@@ -10,6 +10,9 @@ export async function GET(request: Request) {
         await supabase.auth.exchangeCodeForSession(code);
     }
 
-    // URL to redirect to after sign in process completes
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Get the origin from the request, this will work correctly in production
+    const origin = requestUrl.origin;
+
+    // Redirect to dashboard
+    return NextResponse.redirect(new URL('/dashboard', origin));
 }

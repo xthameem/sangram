@@ -1,144 +1,286 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, Clock, Target, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import Image from 'next/image';
+import {
+    BookOpen, Target, Trophy, Clock, ChevronRight,
+    Atom, FlaskConical, Calculator, Lock, ArrowRight
+} from 'lucide-react';
+
+interface UserData {
+    user: {
+        id: string;
+        email: string;
+        username: string;
+        fullName: string;
+        avatarUrl: string | null;
+        targetExam: string;
+    };
+    stats: {
+        totalAttempts: number;
+        correctAnswers: number;
+        accuracy: number;
+        rank: number | string;
+        score: number;
+    };
+}
+
+interface SubjectProgress {
+    subject: string;
+    totalAttempts: number;
+    correctAnswers: number;
+    accuracy: number;
+    chaptersAttempted: number;
+}
+
+const exams = [
+    { id: 'keam', name: 'KEAM', available: true, description: 'Kerala Engineering & Medical' },
+    { id: 'cusat', name: 'CUSAT CAT', available: false, description: 'Cochin University' },
+    { id: 'jee', name: 'JEE Main', available: false, description: 'Joint Entrance Exam' },
+    { id: 'neet', name: 'NEET', available: false, description: 'Medical Entrance' },
+];
 
 const subjects = [
-    { name: 'Physics', chapters: 28, solved: 145, total: 500, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-    { name: 'Chemistry', chapters: 30, solved: 210, total: 550, color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
-    { name: 'Mathematics', chapters: 25, solved: 110, total: 450, color: 'text-pink-500', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
+    { id: 'physics', name: 'Physics', icon: Atom, color: 'from-blue-500 to-cyan-500' },
+    { id: 'chemistry', name: 'Chemistry', icon: FlaskConical, color: 'from-green-500 to-emerald-500' },
+    { id: 'maths', name: 'Mathematics', icon: Calculator, color: 'from-purple-500 to-pink-500' },
 ];
 
-const dailyQuestions = [
-    { id: 1, type: 'Easy', text: 'If a particle moves with constant velocity, its acceleration is:', subject: 'Physics' },
-    { id: 2, type: 'Medium', text: 'Find the integration of sin(x) * cos(x) dx.', subject: 'Mathematics' },
-    { id: 3, type: 'Hard', text: 'Explain the mechanism of SN1 reaction with an example.', subject: 'Chemistry' },
-];
+export default function DashboardPage() {
+    const router = useRouter();
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [subjectStats, setSubjectStats] = useState<SubjectProgress[]>([]);
+    const [loading, setLoading] = useState(true);
 
-const mockTests = [
-    { title: 'Full Syllabus Mock Test 1', duration: '3 Hours', difficulty: 'Hard', questions: 90 },
-    { title: 'Physics Chapterwise Test: Waves', duration: '1 Hour', difficulty: 'Medium', questions: 30 },
-    { title: 'Chemistry: Organic Full Test', duration: '1.5 Hours', difficulty: 'Medium', questions: 45 },
-];
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch user data
+                const userRes = await fetch('/api/user');
+                if (userRes.ok) {
+                    const data = await userRes.json();
+                    setUserData(data);
+                } else if (userRes.status === 401) {
+                    router.push('/');
+                    return;
+                }
 
-export default function DashboardOverview() {
-    const [profileComplete, setProfileComplete] = useState(false); // Simulate incomplete profile
+                // Fetch progress stats
+                const progressRes = await fetch('/api/progress');
+                if (progressRes.ok) {
+                    const progressData = await progressRes.json();
+                    setSubjectStats(progressData.subjectStats || []);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [router]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
+    const userInitials = userData?.user?.username?.substring(0, 2).toUpperCase() || 'GU';
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-            {/* Profile Completion Alert */}
-            {!profileComplete && (
-                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-4 flex items-start gap-4">
-                    <div className="p-2 rounded-full bg-yellow-500/20 text-yellow-500">
-                        <AlertCircle size={24} />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-foreground">Complete your profile</h3>
-                        <p className="text-muted-foreground text-sm mb-3">Please provide your target exam and current class to get personalized recommendations.</p>
-                        <Link href="/dashboard/profile" className="text-sm font-semibold text-yellow-500 hover:text-yellow-600 hover:underline">
-                            Go to Profile &rarr;
-                        </Link>
-                    </div>
+            {/* Welcome Section */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">
+                        Welcome back, {userData?.user?.username || 'Student'}! 👋
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                        {(userData?.stats?.totalAttempts ?? 0) > 0
+                            ? `You've solved ${userData?.stats?.correctAnswers ?? 0} questions correctly. Keep going!`
+                            : 'Start your preparation journey today!'
+                        }
+                    </p>
                 </div>
-            )}
+                <Link
+                    href="/dashboard/profile"
+                    className="flex items-center gap-3 px-4 py-2 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors"
+                >
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                        {userInitials}
+                    </div>
+                    <div className="text-left">
+                        <div className="font-medium text-sm">{userData?.user?.username}</div>
+                        <div className="text-xs text-muted-foreground">View Profile</div>
+                    </div>
+                </Link>
+            </div>
 
-            <div className="flex flex-col xl:flex-row gap-8">
-                {/* Left Column: Main Content */}
-                <div className="flex-1 space-y-8">
-
-                    {/* Daily Challenge - LeetCode Style */}
-                    <section>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                                <Target className="text-primary" /> Daily Challenge
-                            </h2>
-                            <span className="text-sm text-muted-foreground">3 Questions Left</span>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                            <BookOpen size={20} />
                         </div>
-                        <div className="space-y-3">
-                            {dailyQuestions.map((q) => (
-                                <div key={q.id} className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-md cursor-pointer">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide
-                                            ${q.type === 'Easy' ? 'bg-green-500/10 text-green-500' :
-                                                        q.type === 'Medium' ? 'bg-yellow-500/10 text-yellow-500' :
-                                                            'bg-red-500/10 text-red-500'}`}>
-                                                    {q.type}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">• {q.subject}</span>
-                                            </div>
-                                            <h3 className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                                                {q.text}
-                                            </h3>
-                                        </div>
-                                        <ArrowRight size={16} className="text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* Continue Learning */}
-                    <section>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold text-foreground">Continue Practice</h2>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {subjects.map((sub) => (
-                                <div key={sub.name} className={`rounded-xl border ${sub.border} ${sub.bg} p-5 relative overflow-hidden group cursor-pointer`}>
-                                    <div className="relative z-10">
-                                        <h3 className={`font-bold text-lg mb-1 ${sub.color}`}>{sub.name}</h3>
-                                        <div className="text-sm text-muted-foreground mb-4">
-                                            {sub.solved} / {sub.total} Questions
-                                        </div>
-                                        <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full ${sub.name === 'Physics' ? 'bg-blue-500' : sub.name === 'Chemistry' ? 'bg-purple-500' : 'bg-pink-500'}`}
-                                                style={{ width: `${(sub.solved / sub.total) * 100}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className={`absolute -bottom-4 -right-4 w-20 h-20 rounded-full opacity-10 group-hover:opacity-20 transition-opacity ${sub.name === 'Physics' ? 'bg-blue-500' : sub.name === 'Chemistry' ? 'bg-purple-500' : 'bg-pink-500'}`} />
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
+                    </div>
+                    <div className="text-2xl font-bold">{userData?.stats?.totalAttempts || 0}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Questions Attempted</div>
                 </div>
 
-                {/* Right Column: Mock Tests & Updates */}
-                <div className="w-full xl:w-1/3 space-y-8">
-                    <section className="rounded-2xl border border-border bg-card p-6 h-full">
-                        <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-                            <BookOpen className="text-primary" /> Mock Tests
-                        </h2>
-                        <div className="space-y-4">
-                            {mockTests.map((test, i) => (
-                                <div key={i} className="rounded-xl border border-border bg-secondary/20 p-4 hover:bg-secondary/40 transition-colors cursor-pointer">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-semibold text-foreground text-sm line-clamp-2">{test.title}</h4>
-                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border border-border bg-background
-                                      ${test.difficulty === 'Hard' ? 'text-red-500' : 'text-yellow-500'}`}>
-                                            {test.difficulty}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                        <span className="flex items-center gap-1"><Clock size={12} /> {test.duration}</span>
-                                        <span className="flex items-center gap-1"><CheckCircle2 size={12} /> {test.questions} Qs</span>
-                                    </div>
-                                    <button className="mt-3 w-full rounded-lg bg-primary py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
-                                        Start Test
-                                    </button>
-                                </div>
-                            ))}
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
+                            <Target size={20} />
                         </div>
-                        <Link href="/dashboard/mock-tests" className="mt-4 block text-center text-sm font-medium text-primary hover:underline">
-                            View All Tests
-                        </Link>
-                    </section>
+                    </div>
+                    <div className="text-2xl font-bold">{userData?.stats?.accuracy || 0}%</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Accuracy Rate</div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
+                            <Trophy size={20} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold">{userData?.stats?.score || 0}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Total Score</div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                            <Clock size={20} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold">#{userData?.stats?.rank || '-'}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Your Rank</div>
+                </div>
+            </div>
+
+            {/* Exam Selection */}
+            <div>
+                <h2 className="text-xl font-semibold mb-4">Choose Your Exam</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {exams.map((exam) => (
+                        <div
+                            key={exam.id}
+                            className={`relative rounded-2xl border p-5 transition-all ${exam.available
+                                ? 'border-primary/50 bg-primary/5 hover:bg-primary/10 cursor-pointer'
+                                : 'border-border bg-card/50 opacity-60'
+                                }`}
+                            onClick={() => exam.available && router.push('/keam')}
+                        >
+                            {!exam.available && (
+                                <div className="absolute top-3 right-3">
+                                    <Lock size={16} className="text-muted-foreground" />
+                                </div>
+                            )}
+                            <h3 className="font-bold text-lg">{exam.name}</h3>
+                            <p className="text-xs text-muted-foreground mt-1">{exam.description}</p>
+                            {exam.available ? (
+                                <div className="mt-3 flex items-center text-primary text-sm font-medium">
+                                    Start Practice <ArrowRight size={14} className="ml-1" />
+                                </div>
+                            ) : (
+                                <div className="mt-3 text-xs text-muted-foreground">Coming Soon</div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Subject Progress */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">Subject Progress</h2>
+                    <Link href="/keam/chapterwise" className="text-sm text-primary hover:underline">
+                        View All Chapters
+                    </Link>
+                </div>
+                <div className="grid md:grid-cols-3 gap-4">
+                    {subjects.map((subject) => {
+                        const stats = subjectStats.find(s => s.subject === subject.name);
+                        const progressPercent = stats ? (stats.correctAnswers / Math.max(stats.totalAttempts, 1)) * 100 : 0;
+
+                        return (
+                            <Link
+                                key={subject.id}
+                                href={`/keam/chapterwise/${subject.id}`}
+                                className="rounded-2xl border border-border bg-card p-5 hover:shadow-md transition-all group"
+                            >
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white`}>
+                                        <subject.icon size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold">{subject.name}</h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            {stats?.totalAttempts || 0} questions attempted
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Accuracy</span>
+                                        <span className="font-medium">{stats?.accuracy || 0}%</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full bg-gradient-to-r ${subject.color} transition-all duration-500`}
+                                            style={{ width: `${progressPercent}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex items-center text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Practice Now <ChevronRight size={16} className="ml-1" />
+                                </div>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Leaderboard Preview */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">Leaderboard</h2>
+                    <Link href="/leaderboard" className="text-sm text-primary hover:underline">
+                        View Full Rankings
+                    </Link>
+                </div>
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    {userData?.stats?.rank && typeof userData.stats.rank === 'number' ? (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                                    {userInitials}
+                                </div>
+                                <div>
+                                    <div className="font-semibold">{userData.user.username}</div>
+                                    <div className="text-sm text-muted-foreground">Score: {userData.stats.score}</div>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-3xl font-bold text-primary">#{userData.stats.rank}</div>
+                                <div className="text-xs text-muted-foreground">Your Rank</div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-6 text-muted-foreground">
+                            <Trophy size={40} className="mx-auto mb-3 opacity-50" />
+                            <p>Solve questions to appear on the leaderboard!</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

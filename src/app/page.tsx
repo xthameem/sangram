@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -13,14 +12,29 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
+// Get the correct site URL for OAuth redirects
+const getSiteUrl = () => {
+  // In production, use environment variable
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  // Fallback for Vercel deployments
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'https://sangram.vercel.app';
+};
+
 export default function AuthPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
     // Check for existing session
@@ -28,6 +42,8 @@ export default function AuthPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         router.push('/dashboard');
+      } else {
+        setCheckingSession(false);
       }
     };
     checkUser();
@@ -49,23 +65,40 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        // Sign Up with proper redirect
+        // Validate username
+        if (!username.trim()) {
+          setError('Username is required');
+          setLoading(false);
+          return;
+        }
+
+        // Sign Up - no email confirmation required
         const { error, data } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`
+            data: {
+              username: username.trim(),
+              full_name: username.trim(),
+            }
           }
         });
 
         if (error) {
           setError(error.message);
         } else if (data.session) {
-          // If session exists immediately (e.g. disabled confirm), go to dashboard
+          // Session created immediately - go to dashboard
           router.push('/dashboard');
-        } else {
-          // Otherwise, email confirmation sent
-          alert('Check your email for the confirmation link!');
+        } else if (data.user) {
+          // User created - try to sign in immediately
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (signInError) {
+            setError('Account created! Please sign in.');
+            setIsSignUp(false);
+          }
         }
       } else {
         // Sign In
@@ -73,10 +106,12 @@ export default function AuthPage() {
           email,
           password,
         });
-        if (error) throw error;
+        if (error) {
+          setError(error.message);
+        }
       }
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
@@ -84,10 +119,11 @@ export default function AuthPage() {
 
   const handleGoogleAuth = async () => {
     try {
+      const siteUrl = getSiteUrl();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${siteUrl}/auth/callback`
         }
       });
       if (error) throw error;
@@ -96,25 +132,26 @@ export default function AuthPage() {
     }
   };
 
+  // Show loading while checking session
+  if (checkingSession) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Left Panel - Branding */}
       <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-slate-950 p-12 lg:flex">
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-blue-950/20 mix-blend-overlay" />
-          <Image
-            src="/login-bg.png"
-            alt="Background"
-            fill
-            className="object-cover opacity-60"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-slate-900 to-slate-950" />
         </div>
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20 text-primary backdrop-blur-md border border-primary/20 p-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/10 p-2">
               <Image src="/logo.svg" alt="Sangram Logo" width={40} height={40} />
             </div>
             <span className="text-3xl font-bold text-white tracking-tight">Sangram</span>
@@ -125,8 +162,8 @@ export default function AuthPage() {
           <h1 className="text-5xl font-bold leading-tight text-white mb-6">
             Master Your Concepts.<br />
             Ace the Exam.<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-              JEE & NEET Prep.
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+              KEAM Preparation.
             </span>
           </h1>
           <p className="text-lg text-slate-400">
@@ -150,7 +187,7 @@ export default function AuthPage() {
               {isSignUp ? 'Create an account' : 'Welcome back!'}
             </h2>
             <p className="mt-2 text-muted-foreground">
-              {isSignUp ? 'Start your preparation journey today.' : 'Please sign in to your account.'}
+              {isSignUp ? 'Start your KEAM preparation journey today.' : 'Please sign in to your account.'}
             </p>
           </div>
 
@@ -178,6 +215,24 @@ export default function AuthPage() {
               </div>
             )}
 
+            {isSignUp && (
+              <div className="group space-y-2">
+                <label className="text-sm font-medium leading-none text-muted-foreground group-focus-within:text-primary transition-colors" htmlFor="username">Username</label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-3.5 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                  <input
+                    type="text"
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required={isSignUp}
+                    className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-foreground"
+                    placeholder="Choose a unique username"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="group space-y-2">
               <label className="text-sm font-medium leading-none text-muted-foreground group-focus-within:text-primary transition-colors" htmlFor="email">Email</label>
               <div className="relative">
@@ -188,7 +243,7 @@ export default function AuthPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="flex h-12 w-full rounded-xl border border-white/10 dark:border-white/10 border-slate-200 bg-white/5 px-3 py-1 pl-11 text-sm shadow-sm transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 text-foreground bg-slate-50 dark:bg-slate-900/50"
+                  className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-foreground"
                   placeholder="name@example.com"
                 />
               </div>
@@ -204,8 +259,9 @@ export default function AuthPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="flex h-12 w-full rounded-xl border border-white/10 dark:border-white/10 border-slate-200 bg-white/5 px-3 py-1 pl-11 text-sm shadow-sm transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 text-foreground bg-slate-50 dark:bg-slate-900/50"
-                  placeholder="Your password"
+                  minLength={6}
+                  className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-foreground"
+                  placeholder="Your password (min 6 chars)"
                 />
                 <button
                   type="button"
@@ -217,16 +273,10 @@ export default function AuthPage() {
               </div>
             </div>
 
-            {!isSignUp && (
-              <div className="flex justify-end">
-                <Link href="#" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">Forgot password?</Link>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center rounded-xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-primary/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex w-full items-center justify-center rounded-xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-primary/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-6"
             >
               {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Log In')}
             </button>
@@ -235,7 +285,10 @@ export default function AuthPage() {
           <div className="mt-8 text-center text-sm text-muted-foreground">
             {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
             <button
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError(null);
+              }}
               className="font-semibold text-primary hover:text-primary/80 transition-colors ml-1"
             >
               {isSignUp ? 'Log in' : 'Sign up'}
