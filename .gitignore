@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Study materials - PRIVATE (do not push)
+/materials
+*.pdf

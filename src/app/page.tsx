@@ -129,8 +129,8 @@ export default function AuthPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/10 p-2">
-              <Image src="/logo.svg" alt="sangram" width={40} height={40} className="dark:invert-0 invert" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white overflow-hidden">
+              <Image src="/logo.svg" alt="sangram" width={60} height={60} className="object-contain" priority />
             </div>
             <span className="text-3xl font-bold text-white tracking-tight">sangram</span>
           </div>
@@ -155,8 +155,8 @@ export default function AuthPage() {
         <div className="w-full max-w-md mx-auto">
           <div className="mb-10 text-center lg:text-left">
             <div className="flex items-center justify-center gap-3 mb-8 lg:hidden">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/20 p-2">
-                <Image src="/logo.svg" alt="sangram" width={32} height={32} className="dark:invert-0" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white dark:bg-white/10 overflow-hidden">
+                <Image src="/logo.svg" alt="sangram" width={40} height={40} className="object-contain" />
               </div>
               <span className="text-2xl font-bold">sangram</span>
             </div>
