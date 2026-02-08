@@ -2,89 +2,66 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Clock, BookOpen, Target, CheckCircle2, Trophy, Edit2 } from 'lucide-react';
-
-interface UserData {
-    user: {
-        id: string;
-        email: string;
-        username: string;
-        fullName: string;
-        avatarUrl: string | null;
-        targetExam: string;
-    };
-    stats: {
-        totalAttempts: number;
-        correctAnswers: number;
-        accuracy: number;
-        rank: number | string;
-        score: number;
-    };
-}
-
-interface SubjectProgress {
-    subject: string;
-    totalAttempts: number;
-    correctAnswers: number;
-    accuracy: number;
-}
+import { supabase } from '@/lib/supabase';
+import { BookOpen, Target, CheckCircle2, Trophy, Edit2, Save, X } from 'lucide-react';
 
 export default function ProfilePage() {
     const router = useRouter();
-    const [userData, setUserData] = useState<UserData | null>(null);
-    const [subjectStats, setSubjectStats] = useState<SubjectProgress[]>([]);
+    const [user, setUser] = useState<{ email: string; username: string } | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [editUsername, setEditUsername] = useState('');
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        const fetchData = async () => {
+        const checkAuth = async () => {
             try {
-                const userRes = await fetch('/api/user');
-                if (userRes.ok) {
-                    const data = await userRes.json();
-                    setUserData(data);
-                    setEditUsername(data.user?.username || '');
-                } else if (userRes.status === 401) {
+                const { data: { user: authUser } } = await supabase.auth.getUser();
+
+                if (!authUser) {
                     router.push('/');
                     return;
                 }
 
-                const progressRes = await fetch('/api/progress');
-                if (progressRes.ok) {
-                    const progressData = await progressRes.json();
-                    setSubjectStats(progressData.subjectStats || []);
+                const username = authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'User';
+                setUser({
+                    email: authUser.email || '',
+                    username: username,
+                });
+                setEditUsername(username);
+
+                // Auto-open edit if username looks like email prefix
+                if (username === authUser.email?.split('@')[0] || username.includes('@')) {
+                    setIsEditing(true);
                 }
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Auth error:', error);
+                router.push('/');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchData();
+        checkAuth();
     }, [router]);
 
-    const handleSaveProfile = async () => {
+    const handleSaveUsername = async () => {
         if (!editUsername.trim()) return;
 
+        setSaving(true);
         try {
-            const res = await fetch('/api/user', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: editUsername.trim() }),
+            const { error } = await supabase.auth.updateUser({
+                data: { username: editUsername.trim() }
             });
 
-            if (res.ok) {
-                setUserData(prev => prev ? {
-                    ...prev,
-                    user: { ...prev.user, username: editUsername.trim() }
-                } : null);
+            if (!error) {
+                setUser(prev => prev ? { ...prev, username: editUsername.trim() } : null);
                 setIsEditing(false);
             }
         } catch (error) {
-            console.error('Error updating profile:', error);
+            console.error('Error updating username:', error);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -96,187 +73,123 @@ export default function ProfilePage() {
         );
     }
 
-    const userInitials = userData?.user?.username?.substring(0, 2).toUpperCase() || 'GU';
-    const hasProgress = userData?.stats?.totalAttempts && userData.stats.totalAttempts > 0;
+    if (!user) return null;
 
-    // Check if username needs to be set (looks like email prefix)
-    const needsUsername = userData?.user?.username &&
-        (userData.user.username === userData.user.email?.split('@')[0] ||
-            userData.user.username.includes('@'));
-
-    // Auto-open edit mode if no proper username
-    useEffect(() => {
-        if (needsUsername && !loading) {
-            setIsEditing(true);
-        }
-    }, [needsUsername, loading]);
-
-    // Prepare radar data from actual subject stats
-    const radarData = subjectStats.length > 0
-        ? subjectStats.map(s => ({
-            subject: s.subject,
-            A: s.accuracy,
-            fullMark: 100
-        }))
-        : [];
-
-    const stats = [
-        {
-            label: 'Total Questions',
-            value: userData?.stats?.totalAttempts || 0,
-            icon: BookOpen,
-            empty: !hasProgress
-        },
-        {
-            label: 'Correct Answers',
-            value: userData?.stats?.correctAnswers || 0,
-            icon: CheckCircle2,
-            empty: !hasProgress
-        },
-        {
-            label: 'Accuracy Rate',
-            value: hasProgress ? `${userData?.stats?.accuracy}%` : '-',
-            icon: Target,
-            empty: !hasProgress
-        },
-        {
-            label: 'Your Rank',
-            value: hasProgress ? `#${userData?.stats?.rank}` : '-',
-            icon: Trophy,
-            empty: !hasProgress
-        },
-    ];
+    const userInitials = user.username.substring(0, 2).toUpperCase();
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row gap-6 items-start">
-
-                {/* Profile Card */}
-                <div className="w-full md:w-1/3 rounded-2xl border border-border bg-card p-6 shadow-sm">
-                    <div className="flex flex-col items-center text-center">
-                        <div className="relative mb-4 h-32 w-32 overflow-hidden rounded-full border-4 border-primary/20">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600 to-purple-600" />
-                            <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-white">
-                                {userInitials}
-                            </div>
+        <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Profile Card */}
+            <div className="rounded-2xl border border-border bg-card p-8">
+                <div className="flex flex-col items-center text-center">
+                    <div className="relative mb-6 h-32 w-32 overflow-hidden rounded-full border-4 border-primary/20">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600 to-purple-600" />
+                        <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-white">
+                            {userInitials}
                         </div>
+                    </div>
 
-                        {isEditing ? (
-                            <div className="w-full space-y-3">
+                    {isEditing ? (
+                        <div className="w-full max-w-xs space-y-4">
+                            <div>
+                                <label className="text-sm text-muted-foreground block mb-2">Choose your username</label>
                                 <input
                                     type="text"
                                     value={editUsername}
                                     onChange={(e) => setEditUsername(e.target.value)}
-                                    className="w-full text-center text-xl font-bold bg-secondary rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="w-full text-center text-xl font-bold bg-secondary rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
                                     placeholder="Enter username"
+                                    autoFocus
                                 />
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setIsEditing(false)}
-                                        className="flex-1 py-2 rounded-lg border border-border hover:bg-secondary transition-colors text-sm"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleSaveProfile}
-                                        className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm"
-                                    >
-                                        Save
-                                    </button>
-                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">This will be shown on the leaderboard</p>
                             </div>
-                        ) : (
-                            <>
-                                <h2 className="text-2xl font-bold text-foreground">{userData?.user?.username || 'Set Username'}</h2>
-                                <p className="text-muted-foreground">{userData?.user?.email}</p>
-                                <div className="mt-4 flex gap-2">
-                                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                                        {userData?.user?.targetExam || 'KEAM'} Aspirant
-                                    </span>
-                                </div>
-
+                            <div className="flex gap-2">
                                 <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="mt-6 w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-secondary/50 px-4 py-2 text-sm font-medium hover:bg-secondary transition-colors"
+                                    onClick={() => setIsEditing(false)}
+                                    className="flex-1 py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors text-sm flex items-center justify-center gap-2"
+                                    disabled={saving}
                                 >
-                                    <Edit2 size={16} />
-                                    Edit Profile
+                                    <X size={16} /> Cancel
                                 </button>
-                            </>
-                        )}
-                    </div>
+                                <button
+                                    onClick={handleSaveUsername}
+                                    disabled={saving || !editUsername.trim()}
+                                    className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    <Save size={16} /> {saving ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <h2 className="text-2xl font-bold text-foreground">{user.username}</h2>
+                            <p className="text-muted-foreground">{user.email}</p>
+                            <div className="mt-4">
+                                <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                                    KEAM Aspirant
+                                </span>
+                            </div>
 
-                    <div className="mt-8 space-y-4">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Email</span>
-                            <span className="font-medium truncate ml-2">{userData?.user?.email || '-'}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Target Exam</span>
-                            <span className="font-medium">{userData?.user?.targetExam || 'KEAM'}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Total Score</span>
-                            <span className="font-medium">{userData?.stats?.score || 0}</span>
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-border bg-secondary/50 px-6 py-2.5 text-sm font-medium hover:bg-secondary transition-colors"
+                            >
+                                <Edit2 size={16} />
+                                Edit Username
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                            <BookOpen size={18} />
                         </div>
                     </div>
+                    <div className="text-2xl font-bold text-muted-foreground">-</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Questions</div>
                 </div>
 
-                {/* Analytics Section */}
-                <div className="w-full md:w-2/3 space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                        {stats.map((stat) => (
-                            <div key={stat.label} className="rounded-2xl border border-border bg-card p-4">
-                                <div className="flex items-start justify-between mb-2">
-                                    <div className={`p-2 rounded-lg ${stat.empty ? 'bg-secondary text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
-                                        <stat.icon size={16} />
-                                    </div>
-                                </div>
-                                <div className={`text-2xl font-bold ${stat.empty ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                    {stat.value}
-                                </div>
-                                <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                                    {stat.label}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="rounded-2xl border border-border bg-card p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-semibold text-foreground">Performance by Subject</h3>
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
+                            <Target size={18} />
                         </div>
-
-                        {radarData.length > 0 ? (
-                            <div className="h-[300px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                                        <PolarGrid stroke="var(--muted-foreground)" opacity={0.2} />
-                                        <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                        <Radar
-                                            name="Accuracy"
-                                            dataKey="A"
-                                            stroke="var(--primary)"
-                                            strokeWidth={2}
-                                            fill="var(--primary)"
-                                            fillOpacity={0.4}
-                                        />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                                        />
-                                    </RadarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        ) : (
-                            <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground">
-                                <Target size={48} className="mb-4 opacity-30" />
-                                <p className="text-center">No practice data yet</p>
-                                <p className="text-sm text-center mt-1">Start solving questions to see your performance chart</p>
-                            </div>
-                        )}
                     </div>
+                    <div className="text-2xl font-bold text-muted-foreground">-</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Accuracy</div>
                 </div>
+
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
+                            <CheckCircle2 size={18} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold text-muted-foreground">-</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Correct</div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                            <Trophy size={18} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold text-muted-foreground">-</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Rank</div>
+                </div>
+            </div>
+
+            {/* Info */}
+            <div className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center">
+                <p className="text-muted-foreground text-sm">
+                    Start solving questions to see your stats here!
+                </p>
             </div>
         </div>
     );
