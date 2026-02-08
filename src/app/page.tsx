@@ -49,13 +49,26 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        // Sign Up with proper redirect
+        const { error, data } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`
+          }
         });
-        if (error) throw error;
-        alert('Check your email for the confirmation link!');
+
+        if (error) {
+          setError(error.message);
+        } else if (data.session) {
+          // If session exists immediately (e.g. disabled confirm), go to dashboard
+          router.push('/dashboard');
+        } else {
+          // Otherwise, email confirmation sent
+          alert('Check your email for the confirmation link!');
+        }
       } else {
+        // Sign In
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -63,7 +76,7 @@ export default function AuthPage() {
         if (error) throw error;
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -101,10 +114,10 @@ export default function AuthPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary backdrop-blur-md border border-primary/20">
-              <span className="font-bold text-2xl">S</span>
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20 text-primary backdrop-blur-md border border-primary/20 p-3">
+              <Image src="/logo.svg" alt="Sangram Logo" width={40} height={40} />
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight">Sangram</span>
+            <span className="text-3xl font-bold text-white tracking-tight">Sangram</span>
           </div>
         </div>
 
@@ -127,8 +140,8 @@ export default function AuthPage() {
         <div className="w-full max-w-md mx-auto">
           <div className="mb-10 text-center lg:text-left">
             <div className="flex items-center justify-center gap-3 mb-8 lg:hidden">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/20">
-                <span className="font-bold text-lg">S</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/20 p-2">
+                <Image src="/logo.svg" alt="Sangram Logo" width={32} height={32} />
               </div>
               <span className="text-2xl font-bold">Sangram</span>
             </div>

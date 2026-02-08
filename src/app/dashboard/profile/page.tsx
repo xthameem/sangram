@@ -1,7 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { User } from '@supabase/supabase-js';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Clock, BookOpen, Target, CheckCircle2, User } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Clock, BookOpen, Target, CheckCircle2, User as UserIcon } from 'lucide-react';
 
 const radarData = [
     { subject: 'Physics', A: 90, fullMark: 100 },
@@ -19,6 +22,20 @@ const stats = [
 ];
 
 export default function ProfilePage() {
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        getUser();
+    }, []);
+
+    const userInitials = user?.email?.substring(0, 2).toUpperCase() || 'GU';
+    const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Guest User';
+    const userEmail = user?.email || 'guest@example.com';
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -29,10 +46,10 @@ export default function ProfilePage() {
                         <div className="relative mb-4 h-32 w-32 overflow-hidden rounded-full border-4 border-primary/20">
                             <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-purple-600 opacity-80" />
                             <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-white">
-                                AC
+                                {userInitials}
                             </div>
                         </div>
-                        <h2 className="text-2xl font-bold text-foreground">Alex Chen</h2>
+                        <h2 className="text-2xl font-bold text-foreground">{userName}</h2>
                         <p className="text-muted-foreground">JEE Advanced 2025 Aspirant</p>
                         <div className="mt-4 flex gap-2">
                             <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">Pro Member</span>
@@ -47,7 +64,7 @@ export default function ProfilePage() {
                     <div className="mt-8 space-y-4">
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-muted-foreground">Email</span>
-                            <span className="font-medium">alex.chen@example.com</span>
+                            <span className="font-medium">{userEmail}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-muted-foreground">Phone</span>
