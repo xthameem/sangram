@@ -10,92 +10,91 @@ export async function GET(request: Request) {
     const difficulty = searchParams.get('difficulty');
     const exam = searchParams.get('exam') || 'KEAM';
 
-    // Try Supabase first
+    // 1. Start with Local Questions as Source of Truth
+    // This ensures titles, chapters, text are always correct from your code
+    let questions = allQuestions.filter(q => q.exam === exam);
+
+    if (subject) {
+        questions = questions.filter(q => q.subject === subject);
+    }
+    if (chapter) {
+        questions = questions.filter(q => q.chapter === chapter);
+    }
+    if (difficulty) {
+        questions = questions.filter(q => q.difficulty === difficulty);
+    }
+
     try {
         const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-        let query = supabase
-            .from('questions')
-            .select('*')
-            .eq('exam', exam);
+        if (user) {
+            // 2. Fetch User Progress from DB
+            // We need to map local questions to DB questions to find progress
+            // Strategy: Map by 'slug' if available, otherwise fallback to 'question_text'
 
-        if (subject) {
-            query = query.eq('subject', subject);
-        }
-        if (chapter) {
-            query = query.eq('chapter', chapter);
-        }
-        if (difficulty) {
-            query = query.eq('difficulty', difficulty);
-        }
+            // First, get ALL questions from DB to build a map
+            const { data: dbQuestions } = await supabase
+                .from('questions')
+                .select('id, slug, question_text')
+                .eq('exam', exam);
 
-        const { data: questions, error } = await query.order('created_at', { ascending: true });
-
-        if (!error && questions && questions.length > 0) {
-            // Get user progress for these questions
-            const { data: { user } } = await supabase.auth.getUser();
-            let userProgress: Record<string, boolean> = {};
-
-            if (user) {
-                // Use slug for progress tracking (consistent with local data)
-                const slugs = questions?.map(q => q.slug) || [];
-                const { data: progress } = await supabase
-                    .from('user_progress')
-                    .select('question_id, is_correct')
-                    .eq('user_id', user.id)
-                    .in('question_id', slugs);
-
-                progress?.forEach(p => {
-                    userProgress[p.question_id] = p.is_correct;
+            // Create a lookup map: Local Question (Slug/Text) -> DB ID
+            const dbIdMap = new Map<string, string>();
+            if (dbQuestions) {
+                dbQuestions.forEach(q => {
+                    if (q.slug) dbIdMap.set(q.slug, q.id);
+                    // Also map by text for robustness if slug is missing in DB
+                    dbIdMap.set(q.question_text, q.id);
                 });
             }
 
-            // Add user progress to each question - USE SLUG AS ID for consistency!
-            const questionsWithProgress = questions?.map(q => ({
-                ...q,
-                id: q.slug, // Use slug as the ID for URL routing
-                userStatus: userProgress[q.slug] !== undefined
-                    ? (userProgress[q.slug] ? 'solved' : 'attempted')
-                    : 'unattempted'
-            }));
+            // Fetch actual progress records
+            const { data: userProgress } = await supabase
+                .from('user_progress')
+                .select('question_id, is_correct')
+                .eq('user_id', user.id);
+
+            // Create a progress map: DB ID -> Status
+            const progressMap = new Map<string, boolean>();
+            if (userProgress) {
+                userProgress.forEach(p => {
+                    progressMap.set(p.question_id, p.is_correct);
+                });
+            }
+
+            // 3. Merge Progress into Local Questions
+            const questionsWithProgress = questions.map(localQ => {
+                // Find matching DB ID
+                const dbId = dbIdMap.get(localQ.slug) || dbIdMap.get(localQ.question_text);
+
+                // Determine user status
+                let userStatus: 'solved' | 'attempted' | 'unattempted' = 'unattempted';
+                if (dbId && progressMap.has(dbId)) {
+                    userStatus = progressMap.get(dbId) ? 'solved' : 'attempted';
+                }
+
+                return {
+                    ...localQ,
+                    id: localQ.slug,   // Use Slug as ID for frontend routing/URLs
+                    dbId: dbId,        // Keep DB ID if needed for debugging/future use
+                    userStatus: userStatus
+                };
+            });
 
             return NextResponse.json({
                 questions: questionsWithProgress,
-                total: questionsWithProgress?.length || 0
+                total: questionsWithProgress.length
             });
         }
     } catch (error) {
-        console.log('Supabase fetch failed, using local data:', error);
+        console.error('Supabase error, using local data only:', error);
     }
 
-    // Fallback to local data
-    let filteredQuestions = allQuestions.filter(q => q.exam === exam);
-
-    if (subject) {
-        filteredQuestions = filteredQuestions.filter(q => q.subject === subject);
-    }
-    if (chapter) {
-        filteredQuestions = filteredQuestions.filter(q => q.chapter === chapter);
-    }
-    if (difficulty) {
-        filteredQuestions = filteredQuestions.filter(q => q.difficulty === difficulty);
-    }
-
-    const questionsWithProgress = filteredQuestions.map(q => ({
-        id: q.slug,
-        slug: q.slug,
-        title: q.title,
-        exam: q.exam,
-        subject: q.subject,
-        chapter: q.chapter,
-        topic: q.topic,
-        question_text: q.question_text,
-        options: q.options,
-        correct_answer: q.correct_answer,
-        explanation: q.explanation,
-        difficulty: q.difficulty,
-        hints: q.hints,
-        source: q.source,
+    // 4. Fallback (No DB/Auth or Error)
+    const questionsWithProgress = questions.map(q => ({
+        ...q,
+        id: q.slug, // Consistent ID
         userStatus: 'unattempted'
     }));
 

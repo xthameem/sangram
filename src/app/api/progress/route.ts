@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/server-supabase';
 import { NextResponse } from 'next/server';
+import { allQuestions } from '@/data/questions';
 
 export async function POST(request: Request) {
     const supabase = await createClient();
@@ -13,23 +14,65 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { questionId, isCorrect, timeTaken, isMockTest } = body;
 
-    // Check if this is a FIRST attempt (never attempted before)
+    // Resolve questionId (slug) to UUID if necessary
+    let validQuestionId = questionId;
+
+    // Check if questionId is a UUID (simple regex check)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(questionId);
+
+    if (!isUuid) {
+        // It's a slug! Find the corresponding UUID from DB
+
+        // 1. Try finding by 'slug' column (if it exists)
+        const { data: qData, error: qError } = await supabase
+            .from('questions')
+            .select('id')
+            .eq('slug', questionId)
+            .single();
+
+        if (qData) {
+            validQuestionId = qData.id;
+        } else {
+            // 2. Fallback: Slug column might be missing or empty.
+            // Look up the Question Text from local data using the slug
+            const localQuestion = allQuestions.find(q => q.slug === questionId);
+
+            if (localQuestion) {
+                // Try finding by 'question_text' in DB
+                const { data: textData } = await supabase
+                    .from('questions')
+                    .select('id')
+                    .eq('question_text', localQuestion.question_text)
+                    .single();
+
+                if (textData) {
+                    validQuestionId = textData.id;
+                } else {
+                    return NextResponse.json({ error: 'Question not found in DB even by text match. Please run seed.' }, { status: 404 });
+                }
+            } else {
+                return NextResponse.json({ error: 'Invalid question slug provided' }, { status: 400 });
+            }
+        }
+    }
+
+    // Check existing progress (First Attempt Logic)
     const { data: existingProgress } = await supabase
         .from('user_progress')
         .select('id, is_correct')
         .eq('user_id', user.id)
-        .eq('question_id', questionId)
+        .eq('question_id', validQuestionId)
         .single();
 
     const isFirstAttempt = !existingProgress;
     const wasAlreadyCorrect = existingProgress?.is_correct === true;
 
-    // Upsert progress (always update to track latest attempt)
+    // Upsert progress
     const { error } = await supabase
         .from('user_progress')
         .upsert({
             user_id: user.id,
-            question_id: questionId,
+            question_id: validQuestionId,
             is_correct: isCorrect,
             time_taken: timeTaken,
             attempted_at: new Date().toISOString(),
@@ -41,30 +84,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // LEADERBOARD SCORING LOGIC:
-    // - Only FIRST correct answer gives points (no exploiting by re-attempting)
-    // - No negative marking for wrong answers in leaderboard (fair for all)
-    // - Chapterwise: +1 point for first correct
-    // - Mock Test: Score is calculated separately with 2x multipliers
-
+    // LEADERBOARD SCORING (First correct answer = +1 point)
     let pointsEarned = 0;
 
-    // Only award points if:
-    // 1. It's a correct answer
-    // 2. It's either a first attempt OR the question wasn't solved before
     if (isCorrect && isFirstAttempt && !wasAlreadyCorrect) {
         if (isMockTest) {
-            // Mock tests handle their own scoring
-            pointsEarned = 0;
+            pointsEarned = 0; // Mock test handles its own scoring
         } else {
-            // Chapterwise practice: +1 point for first correct answer only
             pointsEarned = 1;
         }
     }
 
-    // Update leaderboard if points were earned
     if (pointsEarned > 0) {
-        // Get current score
+        // Update Leaderboard
         const { data: currentScore } = await supabase
             .from('leaderboard')
             .select('score, total_attempts, correct_answers')
@@ -72,7 +104,6 @@ export async function POST(request: Request) {
             .single();
 
         if (currentScore) {
-            // Update existing entry
             await supabase
                 .from('leaderboard')
                 .update({
@@ -83,8 +114,6 @@ export async function POST(request: Request) {
                 })
                 .eq('user_id', user.id);
         } else {
-            // Create new leaderboard entry
-            // Get username
             const { data: userProfile } = await supabase
                 .from('users')
                 .select('username')
@@ -102,7 +131,7 @@ export async function POST(request: Request) {
                 });
         }
     } else if (isFirstAttempt) {
-        // Track attempt even if wrong (but no points)
+        // Track first attempt even if wrong
         const { data: currentScore } = await supabase
             .from('leaderboard')
             .select('score, total_attempts, correct_answers')
@@ -141,42 +170,33 @@ export async function POST(request: Request) {
         isFirstAttempt,
         pointsEarned,
         message: isCorrect && isFirstAttempt
-            ? `+${pointsEarned} point added to leaderboard!`
-            : isCorrect && !isFirstAttempt
-                ? 'Already attempted - no additional points'
-                : 'Wrong answer - no negative marking'
+            ? `+${pointsEarned} point added!`
+            : 'Progress saved'
     });
 }
 
+// GET Handler
 export async function GET(request: Request) {
     const supabase = await createClient();
-
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { searchParams } = new URL(request.url);
-    const subject = searchParams.get('subject');
-
-    let query = supabase
+    const { data: progress, error } = await supabase
         .from('user_progress')
         .select(`
-      *,
-      questions (subject, chapter, difficulty)
-    `)
+            *,
+            questions (subject, chapter, difficulty)
+        `)
         .eq('user_id', user.id);
 
-    const { data: progress, error } = await query;
-
     if (error) {
+        console.error("Error fetching progress:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Calculate stats by subject
+    // Calculate stats
     const statsBySubject: Record<string, { total: number; correct: number; chapters: Set<string> }> = {};
-
     progress?.forEach(p => {
         const subj = p.questions?.subject;
         if (subj) {
