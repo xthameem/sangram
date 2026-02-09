@@ -1,111 +1,53 @@
 @import "tailwindcss";
 
-/* Light Mode - Default (no class needed) */
-:root {
-  --background: 248 250 252;
-  /* slate-50 */
-  --foreground: 15 23 42;
-  /* slate-900 */
-
-  --card: 255 255 255;
-  /* white */
-  --card-foreground: 15 23 42;
-  /* slate-900 */
-
-  --primary: 99 102 241;
-  /* indigo-500 */
-  --primary-foreground: 255 255 255;
-
-  --muted: 241 245 249;
-  /* slate-100 */
-  --muted-foreground: 100 116 139;
-  /* slate-500 */
-
-  --accent: 59 130 246;
-  /* blue-500 */
-  --accent-foreground: 255 255 255;
-
-  --border: 226 232 240;
-  /* slate-200 */
-  --input: 226 232 240;
-  --ring: 99 102 241;
+/* Force light mode as default by applying light colors directly */
+html {
+  color-scheme: light;
 }
 
-/* Dark Mode */
-.dark {
-  --background: 15 23 42;
-  /* slate-900 */
-  --foreground: 248 250 252;
-  /* slate-50 */
-
-  --card: 30 41 59;
-  /* slate-800 */
-  --card-foreground: 248 250 252;
-
-  --primary: 129 140 248;
-  /* indigo-400 */
-  --primary-foreground: 255 255 255;
-
-  --muted: 51 65 85;
-  /* slate-700 */
-  --muted-foreground: 148 163 184;
-  /* slate-400 */
-
-  --accent: 59 130 246;
-  --accent-foreground: 255 255 255;
-
-  --border: 51 65 85;
-  /* slate-700 */
-  --input: 51 65 85;
-  --ring: 129 140 248;
+html.dark {
+  color-scheme: dark;
 }
 
-* {
-  border-color: rgb(var(--border));
-}
-
+/* Light Mode Base - Applied when NO .dark class */
 body {
-  background-color: rgb(var(--background));
-  color: rgb(var(--foreground));
+  background-color: #f8fafc;
+  /* slate-50 */
+  color: #0f172a;
+  /* slate-900 */
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom utilities */
-@layer utilities {
-  .bg-background {
-    background-color: rgb(var(--background));
-  }
+/* Dark Mode - Applied when .dark class is present */
+html.dark body {
+  background-color: #0f172a;
+  /* slate-900 */
+  color: #f8fafc;
+  /* slate-50 */
+}
 
-  .text-foreground {
-    color: rgb(var(--foreground));
-  }
+/* CSS Variables for components */
+:root {
+  --background: 248 250 252;
+  --foreground: 15 23 42;
+  --card: 255 255 255;
+  --card-foreground: 15 23 42;
+  --primary: 99 102 241;
+  --primary-foreground: 255 255 255;
+  --muted: 241 245 249;
+  --muted-foreground: 100 116 139;
+  --border: 226 232 240;
+}
 
-  .bg-card {
-    background-color: rgb(var(--card));
-  }
-
-  .text-card-foreground {
-    color: rgb(var(--card-foreground));
-  }
-
-  .bg-muted {
-    background-color: rgb(var(--muted));
-  }
-
-  .text-muted-foreground {
-    color: rgb(var(--muted-foreground));
-  }
-
-  .bg-primary {
-    background-color: rgb(var(--primary));
-  }
-
-  .text-primary {
-    color: rgb(var(--primary));
-  }
-
-  .border-border {
-    border-color: rgb(var(--border));
-  }
+.dark {
+  --background: 15 23 42;
+  --foreground: 248 250 252;
+  --card: 30 41 59;
+  --card-foreground: 248 250 252;
+  --primary: 129 140 248;
+  --primary-foreground: 255 255 255;
+  --muted: 51 65 85;
+  --muted-foreground: 148 163 184;
+  --border: 51 65 85;
 }

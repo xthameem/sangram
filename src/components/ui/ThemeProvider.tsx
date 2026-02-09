@@ -7,8 +7,10 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
         <NextThemesProvider
             attribute="class"
             defaultTheme="light"
-            enableSystem={true}
+            enableSystem={false}
+            storageKey="sangram-theme"
             themes={['light', 'dark']}
+            disableTransitionOnChange
         >
             {children}
         </NextThemesProvider>

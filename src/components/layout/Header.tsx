@@ -28,7 +28,7 @@ export default function Header() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   return (
-    <header className="sticky top-0 z-50 h-16 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 h-16 w-full border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 backdrop-blur-xl">
       <div className="flex h-full items-center justify-between px-4 lg:px-6 max-w-7xl mx-auto">
         {/* Logo - Left Corner */}
         <Link href="/dashboard" className="flex items-center gap-2">
