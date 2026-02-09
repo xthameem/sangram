@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 
-export default function DashboardLayout({
+export default function AppLayout({
     children,
 }: {
     children: React.ReactNode;
@@ -58,19 +58,7 @@ export default function DashboardLayout({
                     <Header />
                 </div>
 
-                {/* On Desktop, we might want a simple top bar for ThemeToggle/Logout if Sidebar doesn't have it.
-                    Sidebar doesn't have Logout/ThemeToggle in my previous implementation. 
-                    Let's render Header on Desktop but hide Logo/NavLinks using CSS in Header component?
-                    Or just render Header always and accept double logo? 
-                    Let's render Header always for now, but I'll add a class to hide logo on LG if needed.
-                */}
                 <div className="hidden lg:block sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border px-8 py-4 flex justify-end items-center gap-4">
-                    {/* We can re-use the User Actions part of Header here, or simple buttons.
-                        For simplicity, let's just use Header everywhere but rely on its responsive classes. 
-                        Actually Header has "md:hidden" for mobile menu button.
-                        And "hidden md:flex" for NavLinks.
-                        NavLinks are redundant with Sidebar.
-                     */}
                     <Header />
                 </div>
 

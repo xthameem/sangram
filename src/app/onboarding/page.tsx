@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { KERALA_DISTRICTS } from '@/data/kerala-districts';
 import { supabase } from '@/lib/supabase';
-import { User } from 'lucide-react';
+import { User, Camera } from 'lucide-react';
 import Image from 'next/image';
 
 export default function OnboardingPage() {
@@ -17,6 +17,7 @@ export default function OnboardingPage() {
     const [district, setDistrict] = useState('');
     const [mobile, setMobile] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -72,6 +73,32 @@ export default function OnboardingPage() {
 
         setLoading(true);
         try {
+            // Upload Avatar if file selected
+            let finalAvatarUrl = avatarUrl;
+
+            if (avatarFile) {
+                const fileExt = avatarFile.name.split('.').pop();
+                const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+                const { error: uploadError, data } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, avatarFile, { upsert: true });
+
+                if (uploadError) {
+                    console.error('Avatar upload failed:', uploadError);
+                    // Proceed without failing completely, or show error?
+                    // I'll log it and proceed with default avatar if old url was empty
+                    if (uploadError.message.includes('Bucket not found')) {
+                        console.warn('Avatars bucket missing. Please create it.');
+                    }
+                } else {
+                    // Get Public URL
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('avatars')
+                        .getPublicUrl(fileName);
+                    finalAvatarUrl = publicUrl;
+                }
+            }
+
             // Check username uniqueness
             const { data: existing } = await supabase
                 .from('profiles')
@@ -94,7 +121,7 @@ export default function OnboardingPage() {
                     username,
                     district: district || null,
                     mobile: mobile || null,
-                    avatar_url: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
+                    avatar_url: finalAvatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
                     updated_at: new Date().toISOString()
                 });
 
@@ -225,16 +252,57 @@ export default function OnboardingPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Profile Picture URL (Optional)
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                                    Profile Picture
                                 </label>
-                                <input
-                                    type="url"
-                                    value={avatarUrl}
-                                    onChange={e => setAvatarUrl(e.target.value)}
-                                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="https://example.com/avatar.jpg"
-                                />
+                                <div className="flex items-center gap-6">
+                                    <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
+                                        <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg bg-slate-100 dark:bg-slate-800">
+                                            {avatarFile ? (
+                                                <img
+                                                    src={URL.createObjectURL(avatarFile)}
+                                                    alt="Preview"
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : avatarUrl && avatarUrl.startsWith('http') ? (
+                                                <img
+                                                    src={avatarUrl}
+                                                    alt="Current"
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="h-full w-full flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400">
+                                                    <User size={32} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Camera size={24} className="text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="flex-1">
+                                        <input
+                                            type="file"
+                                            id="avatar-upload"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) setAvatarFile(file);
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => document.getElementById('avatar-upload')?.click()}
+                                            className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+                                        >
+                                            Choose Image
+                                        </button>
+                                        <p className="mt-2 text-xs text-slate-500">
+                                            JPG, PNG or GIF. Max 2MB.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

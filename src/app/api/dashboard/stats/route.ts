@@ -1,34 +1,76 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-export async function GET() {
-    // Simulate database delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
-    const data = {
-        stats: [
-            { label: 'Total Questions', value: '3,248', change: '+12%', trend: 'up' },
-            { label: 'Accuracy Rate', value: '86.4%', change: '+2.1%', trend: 'up' },
-            { label: 'Study Time', value: '42h', change: '-5%', trend: 'down' },
-            { label: 'Tests Taken', value: '24', change: '+4', trend: 'up' },
-        ],
-        radarData: [
-            { subject: 'Physics', A: 90, fullMark: 100 },
-            { subject: 'Chemistry', A: 78, fullMark: 100 },
-            { subject: 'Mathematics', A: 72, fullMark: 100 },
-            { subject: 'Biology', A: 85, fullMark: 100 },
-            { subject: 'English', A: 65, fullMark: 100 },
-        ],
-        subjects: [
-            { name: 'Physics', accuracy: '90.00%', questions: 32, strong: 'Kinematics', weak: 'Thermodynamics' },
-            { name: 'Chemistry', accuracy: '96.00%', questions: 33, strong: 'Organic', weak: 'Solutions' },
-            { name: 'Math', accuracy: '96.00%', questions: 22, strong: 'Calculus', weak: 'Vectors' },
-        ],
-        recentTests: [
-            { name: 'Last Few Mock Test 1', date: 'Oct 19, 2023', score: 80.00, accuracy: '96.00%' },
-            { name: 'Last Few Mock Test 2', date: 'Oct 27, 2023', score: 78.00, accuracy: '75.00%' },
-            { name: 'Last Few Mock Test 3', date: 'Oct 17, 2023', score: 72.00, accuracy: '70.00%' },
-        ]
-    };
+export async function GET(request: Request) {
+    // Get user from auth header or session (Supabase Auth Helper cleaner, but using simple client here)
+    // We need to parse the cookie manually or just use headers if forwarded.
+    // Actually, in App Router API routes, we should use createRouteHandlerClient. 
+    // But since I don't have that setup ready, I'll trust the user is authenticated via client
+    // BUT best practice: Use getUser() with cookie store.
 
-    return NextResponse.json(data);
+    // For now, I'll rely on the client sending usage stats via a separate secure call,
+    // OR easier: just fetch all rows match user via specific client? 
+    // No, I need the user ID. 
+    // I'll grab it from the request headers if passed, or better, use `supabase.auth.getUser(token)`.
+
+    // Let's assume standard auth header 'Authorization: Bearer <token>'
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 1. Fetch User Progress Stats
+    const { data: progress, error: progressError } = await supabase
+        .from('user_progress')
+        .select('is_correct, time_spent_seconds, question_id')
+        .eq('user_id', user.id);
+
+    if (progressError) {
+        return NextResponse.json({ error: progressError.message }, { status: 500 });
+    }
+
+    const totalAttempts = progress.length;
+    const correctAnswers = progress.filter(p => p.is_correct).length;
+    const accuracy = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+
+    // Simple score logic: +4 for correct, -1 for wrong (standard JEE/KEAM)
+    // Or just +4 for now as per user preference (no negative in leaderboard, but maybe here?)
+    // User requested "No negative marking in leaderboard". 
+    // I'll use +4 for correct only here to match "Score".
+    const score = correctAnswers * 4;
+
+    // 2. Fetch Rank from Leaderboard View
+    const { data: leaderboardData } = await supabase
+        .from('leaderboard')
+        .select('user_id')
+        .order('score', { ascending: false })
+        .order('correct_answers', { ascending: false });
+
+    const rank = leaderboardData ? leaderboardData.findIndex(u => u.user_id === user.id) + 1 : 0;
+
+    // 3. Mock Tests & Chapters (Estimate)
+    // We can count unique chapters from questions joined? Too complex.
+    // Just return 0 for now or simple count.
+
+    return NextResponse.json({
+        totalAttempts,
+        correctAnswers,
+        accuracy,
+        score,
+        rank,
+        mockTests: 0, // Todo: track mock tests
+        chapters: 0, // Todo: track unique chapters
+    });
 }
