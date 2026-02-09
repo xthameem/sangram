@@ -1,53 +1,64 @@
 @import "tailwindcss";
 
-/* Force light mode as default by applying light colors directly */
-html {
-  color-scheme: light;
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Theme colors using CSS variables */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
 }
 
-html.dark {
-  color-scheme: dark;
-}
-
-/* Light Mode Base - Applied when NO .dark class */
-body {
-  background-color: #f8fafc;
-  /* slate-50 */
-  color: #0f172a;
-  /* slate-900 */
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Dark Mode - Applied when .dark class is present */
-html.dark body {
-  background-color: #0f172a;
-  /* slate-900 */
-  color: #f8fafc;
-  /* slate-50 */
-}
-
-/* CSS Variables for components */
+/* Light Mode Defaults */
 :root {
-  --background: 248 250 252;
-  --foreground: 15 23 42;
-  --card: 255 255 255;
-  --card-foreground: 15 23 42;
-  --primary: 99 102 241;
-  --primary-foreground: 255 255 255;
-  --muted: 241 245 249;
-  --muted-foreground: 100 116 139;
-  --border: 226 232 240;
+  --background: #f8fafc;
+  /* slate-50 */
+  --foreground: #0f172a;
+  /* slate-900 */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --primary: #6366f1;
+  /* indigo-600 */
+  --primary-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
 }
 
+/* Dark Mode Overrides */
 .dark {
-  --background: 15 23 42;
-  --foreground: 248 250 252;
-  --card: 30 41 59;
-  --card-foreground: 248 250 252;
-  --primary: 129 140 248;
-  --primary-foreground: 255 255 255;
-  --muted: 51 65 85;
-  --muted-foreground: 148 163 184;
-  --border: 51 65 85;
+  --background: #0f172a;
+  /* slate-900 */
+  --foreground: #f8fafc;
+  /* slate-50 */
+  --card: #1e293b;
+  /* slate-800 */
+  --card-foreground: #f8fafc;
+  --primary: #818cf8;
+  /* indigo-400 */
+  --primary-foreground: #ffffff;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --border: #334155;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply transition-colors duration-200;
+  }
 }

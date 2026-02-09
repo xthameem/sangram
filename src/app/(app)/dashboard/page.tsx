@@ -93,7 +93,7 @@ export default function DashboardPage() {
                 <div className="lg:col-span-1">
                     <div className="sticky top-24 space-y-6">
                         {/* Profile Card */}
-                        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-6 flex flex-col items-center text-center">
+                        <div className="rounded-2xl border border-border bg-card shadow-sm p-6 flex flex-col items-center text-center">
                             <div className="relative mb-4 h-20 w-20 overflow-hidden rounded-full border-4 border-slate-100 dark:border-slate-700 shadow-lg">
                                 {profile.avatar_url && profile.avatar_url.startsWith('http') ? (
                                     <img
@@ -108,10 +108,10 @@ export default function DashboardPage() {
                                 )}
                             </div>
 
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate w-full">
+                            <h2 className="text-lg font-bold text-foreground truncate w-full">
                                 {profile.full_name}
                             </h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">@{profile.username}</p>
+                            <p className="text-sm text-muted-foreground mb-4">@{profile.username}</p>
 
                             <div className="w-full space-y-2 pt-4 border-t border-slate-100 dark:border-slate-700 text-sm">
                                 {profile.district && (
@@ -136,7 +136,7 @@ export default function DashboardPage() {
 
                             <Link
                                 href="/onboarding"
-                                className="mt-5 w-full py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                className="mt-5 w-full py-2 px-4 rounded-xl border border-border bg-muted hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground text-sm font-medium transition-colors flex items-center justify-center gap-2"
                             >
                                 <Edit size={14} />
                                 Edit Profile
@@ -158,24 +158,24 @@ export default function DashboardPage() {
                 <div className="lg:col-span-3 space-y-8">
                     {/* Welcome Section */}
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                             Hello, {profile.full_name.split(' ')[0]}! 👋
                         </h1>
-                        <p className="text-slate-600 dark:text-slate-400 mt-1">
+                        <p className="text-muted-foreground mt-1">
                             Ready to continue your preparation?
                         </p>
                     </div>
 
                     {/* Exam Selection */}
                     <div>
-                        <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Choose Your Exam</h2>
+                        <h2 className="text-lg font-semibold mb-4 text-foreground">Choose Your Exam</h2>
                         <div className="grid grid-cols-2 gap-4">
                             {exams.map((exam) => (
                                 <div
                                     key={exam.id}
                                     className={`relative rounded-2xl border p-5 transition-all cursor-pointer ${exam.available
-                                        ? 'border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/50'
-                                        : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 opacity-60 cursor-not-allowed'
+                                        ? 'border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/5 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/30'
+                                        : 'border-border bg-muted/50 opacity-60 cursor-not-allowed'
                                         }`}
                                     onClick={() => exam.available && router.push('/keam')}
                                 >
@@ -202,6 +202,7 @@ export default function DashboardPage() {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Quick Start - Subjects</h2>
+                            <h2 className="text-lg font-semibold text-foreground">Quick Start - Subjects</h2>
                             <Link href="/keam/chapterwise" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
                                 View All Chapters
                             </Link>
@@ -211,7 +212,7 @@ export default function DashboardPage() {
                                 <Link
                                     key={subject.id}
                                     href={`/keam/chapterwise/${subject.id}`}
-                                    className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all group"
+                                    className="rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/20 transition-all group"
                                 >
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white shadow-md`}>
