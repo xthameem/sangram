@@ -207,7 +207,7 @@ export default function OnboardingPage() {
                                     value={fullName}
                                     onChange={e => setFullName(e.target.value)}
                                     className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="e.g. Adarsh Kumar"
+                                    placeholder="Your full name"
                                 />
                                 {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
                             </div>
@@ -221,7 +221,7 @@ export default function OnboardingPage() {
                                     value={username}
                                     onChange={e => setUsername(e.target.value.toLowerCase())}
                                     className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="e.g. adarsh.kumar"
+                                    placeholder="Choose a username"
                                 />
                                 <p className="text-xs text-slate-500 mt-1">Only lowercase letters, numbers, dots, and underscores.</p>
                                 {errors.username && <p className="text-xs text-red-500 mt-1">{errors.username}</p>}

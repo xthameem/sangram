@@ -113,14 +113,14 @@ export default function AuthPage() {
 
   if (checkingSession) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-900">
       {/* Left Panel - Branding */}
       <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-slate-950 p-12 lg:flex">
         <div className="absolute inset-0 z-0">
@@ -182,7 +182,7 @@ export default function AuthPage() {
               <span className="w-full border-t border-slate-200 dark:border-muted/20" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
+              <span className="bg-slate-50 dark:bg-slate-900 px-2 text-slate-500">Or continue with email</span>
             </div>
           </div>
 
@@ -204,7 +204,7 @@ export default function AuthPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-slate-900 dark:text-white"
-                  placeholder="name@example.com"
+                  placeholder="Enter your email"
                 />
               </div>
             </div>
@@ -221,7 +221,7 @@ export default function AuthPage() {
                   required
                   minLength={6}
                   className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-slate-900 dark:text-white"
-                  placeholder="Your password (min 6 chars)"
+                  placeholder="Enter your password"
                 />
                 <button
                   type="button"

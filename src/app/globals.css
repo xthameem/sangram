@@ -1,95 +1,111 @@
 @import "tailwindcss";
 
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-border: var(--border);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@utility glass {
-  background: rgba(30, 41, 59, 0.4);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-@utility glass-card {
-  background: rgba(30, 41, 59, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-/* Light Mode - Default */
+/* Light Mode - Default (no class needed) */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: 248 250 252;
+  /* slate-50 */
+  --foreground: 15 23 42;
+  /* slate-900 */
 
-  --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card: 255 255 255;
+  /* white */
+  --card-foreground: 15 23 42;
+  /* slate-900 */
 
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
+  --primary: 99 102 241;
+  /* indigo-500 */
+  --primary-foreground: 255 255 255;
 
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted: 241 245 249;
+  /* slate-100 */
+  --muted-foreground: 100 116 139;
+  /* slate-500 */
 
-  --accent: #3b82f6;
-  --accent-foreground: #ffffff;
+  --accent: 59 130 246;
+  /* blue-500 */
+  --accent-foreground: 255 255 255;
 
-  --border: #e2e8f0;
+  --border: 226 232 240;
+  /* slate-200 */
+  --input: 226 232 240;
+  --ring: 99 102 241;
 }
 
 /* Dark Mode */
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  --background: 15 23 42;
+  /* slate-900 */
+  --foreground: 248 250 252;
+  /* slate-50 */
 
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
+  --card: 30 41 59;
+  /* slate-800 */
+  --card-foreground: 248 250 252;
 
-  --primary: #818cf8;
-  --primary-foreground: #ffffff;
+  --primary: 129 140 248;
+  /* indigo-400 */
+  --primary-foreground: 255 255 255;
 
-  --muted: #334155;
-  --muted-foreground: #94a3b8;
+  --muted: 51 65 85;
+  /* slate-700 */
+  --muted-foreground: 148 163 184;
+  /* slate-400 */
 
-  --accent: #3b82f6;
-  --accent-foreground: #ffffff;
+  --accent: 59 130 246;
+  --accent-foreground: 255 255 255;
 
-  --border: #334155;
+  --border: 51 65 85;
+  /* slate-700 */
+  --input: 51 65 85;
+  --ring: 129 140 248;
 }
 
 * {
-  border-color: var(--border);
+  border-color: rgb(var(--border));
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Smooth transitions for theme change */
-html {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
+/* Custom utilities */
+@layer utilities {
+  .bg-background {
+    background-color: rgb(var(--background));
+  }
 
-/* Fix for input autofill in light mode */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px var(--card) inset;
-  -webkit-text-fill-color: var(--foreground);
+  .text-foreground {
+    color: rgb(var(--foreground));
+  }
+
+  .bg-card {
+    background-color: rgb(var(--card));
+  }
+
+  .text-card-foreground {
+    color: rgb(var(--card-foreground));
+  }
+
+  .bg-muted {
+    background-color: rgb(var(--muted));
+  }
+
+  .text-muted-foreground {
+    color: rgb(var(--muted-foreground));
+  }
+
+  .bg-primary {
+    background-color: rgb(var(--primary));
+  }
+
+  .text-primary {
+    color: rgb(var(--primary));
+  }
+
+  .border-border {
+    border-color: rgb(var(--border));
+  }
 }
