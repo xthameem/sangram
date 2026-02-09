@@ -2,21 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { ChevronRight, CheckCircle2, XCircle, Circle } from 'lucide-react';
+import { ChevronRight, CheckCircle2, XCircle, Circle, ArrowLeft } from 'lucide-react';
 
 interface Question {
     id: string;
+    title: string;
     chapter: string;
     question_text: string;
     difficulty: string;
     userStatus: 'solved' | 'attempted' | 'unattempted';
 }
-
-const chapters = [
-    'Laws of Motion',
-    // More chapters will be added as questions are uploaded
-];
 
 export default function PhysicsChaptersPage() {
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -41,9 +36,8 @@ export default function PhysicsChaptersPage() {
         fetchQuestions();
     }, []);
 
-    // Get unique chapters from questions
+    // Get unique chapters from questions dynamically
     const availableChapters = [...new Set(questions.map(q => q.chapter))];
-    const chaptersToShow = availableChapters.length > 0 ? availableChapters : chapters;
 
     const filteredQuestions = selectedChapter
         ? questions.filter(q => q.chapter === selectedChapter)
@@ -65,11 +59,20 @@ export default function PhysicsChaptersPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Back Button */}
+            <Link
+                href="/keam/chapterwise"
+                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+                <ArrowLeft size={18} />
+                <span>Back to Subjects</span>
+            </Link>
+
             <div>
                 <h1 className="text-3xl font-bold text-foreground">Physics</h1>
                 <p className="text-muted-foreground mt-1">
                     {questions.length > 0
-                        ? `${questions.length} questions available`
+                        ? `${questions.length} questions • ${availableChapters.length} chapters`
                         : 'No questions available yet. Check back soon!'
                     }
                 </p>
@@ -97,7 +100,7 @@ export default function PhysicsChaptersPage() {
                                 >
                                     All Questions ({questions.length})
                                 </button>
-                                {chaptersToShow.map((chapter) => {
+                                {availableChapters.map((chapter) => {
                                     const stats = getChapterStats(chapter);
                                     return (
                                         <button
@@ -106,9 +109,9 @@ export default function PhysicsChaptersPage() {
                                             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedChapter === chapter ? 'bg-primary/10 text-primary' : 'hover:bg-secondary'
                                                 }`}
                                         >
-                                            <div className="flex justify-between items-center">
-                                                <span className="truncate">{chapter}</span>
-                                                <span className="text-xs text-muted-foreground">
+                                            <div className="flex justify-between items-center gap-2">
+                                                <span className="truncate flex-1" title={chapter}>{chapter}</span>
+                                                <span className="text-xs text-muted-foreground flex-shrink-0">
                                                     {stats.solved}/{stats.total}
                                                 </span>
                                             </div>
@@ -128,10 +131,10 @@ export default function PhysicsChaptersPage() {
                                 className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-sm transition-all group"
                             >
                                 <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${question.userStatus === 'solved'
-                                        ? 'bg-green-500/10 text-green-500'
-                                        : question.userStatus === 'attempted'
-                                            ? 'bg-red-500/10 text-red-500'
-                                            : 'bg-secondary text-muted-foreground'
+                                    ? 'bg-green-500/10 text-green-500'
+                                    : question.userStatus === 'attempted'
+                                        ? 'bg-red-500/10 text-red-500'
+                                        : 'bg-secondary text-muted-foreground'
                                     }`}>
                                     {question.userStatus === 'solved' ? (
                                         <CheckCircle2 size={18} />
@@ -143,21 +146,21 @@ export default function PhysicsChaptersPage() {
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">
-                                        {question.question_text.substring(0, 80)}...
+                                    <p className="font-medium text-foreground">
+                                        {question.title || question.question_text.substring(0, 50) + '...'}
                                     </p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-xs text-muted-foreground">{question.chapter}</span>
                                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${question.difficulty === 'easy' ? 'bg-green-500/10 text-green-500' :
-                                                question.difficulty === 'hard' ? 'bg-red-500/10 text-red-500' :
-                                                    'bg-yellow-500/10 text-yellow-500'
+                                            question.difficulty === 'hard' ? 'bg-red-500/10 text-red-500' :
+                                                'bg-yellow-500/10 text-yellow-500'
                                             }`}>
                                             {question.difficulty}
                                         </span>
                                     </div>
                                 </div>
 
-                                <ChevronRight size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                                <ChevronRight size={18} className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
                             </Link>
                         ))}
                     </div>

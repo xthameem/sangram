@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Clock, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, XCircle, Flag, AlertTriangle, Shield, Trophy, Zap } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, XCircle, Flag, AlertTriangle, Shield, Trophy, Zap, MessageSquare, X } from 'lucide-react';
 
 interface Question {
     id: string;
@@ -35,6 +35,9 @@ export default function MockTestPage() {
     const [showWarning, setShowWarning] = useState(false);
     const [warningMessage, setWarningMessage] = useState('');
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportReason, setReportReason] = useState('');
+    const [reportSubmitted, setReportSubmitted] = useState(false);
 
     // Fetch questions
     useEffect(() => {
@@ -193,6 +196,15 @@ export default function MockTestPage() {
         if (ans?.isMarkedForReview) return 'review';
         if (ans?.selectedAnswer) return 'answered';
         return 'not-visited';
+    };
+
+    const handleReport = () => {
+        setReportSubmitted(true);
+        setTimeout(() => {
+            setShowReportModal(false);
+            setReportReason('');
+            setReportSubmitted(false);
+        }, 1500);
     };
 
     if (loading) {
@@ -425,8 +437,16 @@ export default function MockTestPage() {
                         <div className="flex items-center justify-between mb-4">
                             <span className="text-sm text-muted-foreground">Question {currentIndex + 1} / {questions.length}</span>
                             <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setShowReportModal(true)}
+                                    className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                                    title="Report issue"
+                                >
+                                    <MessageSquare size={12} />
+                                    Report
+                                </button>
                                 <span className={`px-2 py-1 rounded text-xs font-medium ${currentQuestion.difficulty === 'easy' ? 'bg-green-500/10 text-green-500' :
-                                        currentQuestion.difficulty === 'hard' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'
+                                    currentQuestion.difficulty === 'hard' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'
                                     }`}>{currentQuestion.difficulty}</span>
                                 <span className="text-xs text-muted-foreground">{currentQuestion.chapter}</span>
                             </div>
@@ -454,8 +474,8 @@ export default function MockTestPage() {
                                         className={`w-full text-left p-4 rounded-xl border transition-all ${optionClass}`}>
                                         <div className="flex items-start gap-3">
                                             <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium ${isSubmitted && isCorrect ? 'bg-green-500 text-white' :
-                                                    isSubmitted && isWrong ? 'bg-red-500 text-white' :
-                                                        isSelected ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                                                isSubmitted && isWrong ? 'bg-red-500 text-white' :
+                                                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
                                                 }`}>{optionLetter}</div>
                                             <span className="flex-1">{option}</span>
                                         </div>
@@ -535,6 +555,56 @@ export default function MockTestPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Report Modal */}
+            {showReportModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowReportModal(false)}>
+                    <div className="bg-card rounded-2xl border border-border p-6 max-w-md w-full animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <MessageSquare className="text-primary" size={20} />
+                                Report Question Issue
+                            </h3>
+                            <button onClick={() => setShowReportModal(false)} className="p-1 rounded hover:bg-secondary">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {reportSubmitted ? (
+                            <div className="text-center py-6">
+                                <CheckCircle2 className="mx-auto text-green-500 mb-3" size={48} />
+                                <p className="font-medium">Report Submitted!</p>
+                                <p className="text-sm text-muted-foreground">Thank you for helping us improve.</p>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Question {currentIndex + 1}: Report any issues to help us improve.
+                                </p>
+                                <div className="space-y-2 mb-4">
+                                    {['Wrong answer marked as correct', 'Typo in question/options', 'Unclear question', 'Wrong explanation', 'Other'].map((reason) => (
+                                        <button
+                                            key={reason}
+                                            onClick={() => setReportReason(reason)}
+                                            className={`w-full text-left px-4 py-2 rounded-lg text-sm transition-colors ${reportReason === reason ? 'bg-primary/10 text-primary border border-primary/30' : 'hover:bg-secondary border border-border'
+                                                }`}
+                                        >
+                                            {reason}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={handleReport}
+                                    disabled={!reportReason}
+                                    className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                                >
+                                    Submit Report
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
