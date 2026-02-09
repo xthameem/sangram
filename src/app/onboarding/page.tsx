@@ -132,13 +132,20 @@ export default function OnboardingPage() {
             console.error('Error updating profile:', error);
 
             // Graceful fallback: If 'district' or 'mobile' columns missing (Schema Mismatch)
-            // Postgres Error 42703: undefined_column
-            if (error.code === '42703' || error.message?.includes('does not exist')) {
+            // Postgres Error 42703: undefined_column, or PostgREST error "Could not find..."
+            if (
+                error.code === '42703' ||
+                error.message?.includes('does not exist') ||
+                error.message?.includes('Could not find')
+            ) {
                 try {
+                    console.log('Retrying with basic profile info...');
                     const { error: retryError } = await supabase.from('profiles').upsert({
                         id: user.id,
                         full_name: fullName,
                         username,
+                        // Don't include district/mobile
+                        // Utilize available avatarUrl from state, might miss new upload if any, but safer
                         avatar_url: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
                         updated_at: new Date().toISOString()
                     });
