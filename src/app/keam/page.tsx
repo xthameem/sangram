@@ -22,7 +22,7 @@ const sections = [
         description: 'Full-length timed mock tests',
         icon: Clock,
         href: '/keam/mocktest',
-        available: false,
+        available: true,
     },
     {
         id: 'pyq',
@@ -53,8 +53,8 @@ export default function KEAMPage() {
                         key={section.id}
                         onClick={() => section.available && router.push(section.href)}
                         className={`rounded-2xl border p-6 transition-all ${section.available
-                                ? 'border-border bg-card hover:shadow-lg hover:border-primary/30 cursor-pointer'
-                                : 'border-border bg-card/50 opacity-60'
+                            ? 'border-border bg-card hover:shadow-lg hover:border-primary/30 cursor-pointer'
+                            : 'border-border bg-card/50 opacity-60'
                             }`}
                     >
                         <div className="flex items-start justify-between mb-4">

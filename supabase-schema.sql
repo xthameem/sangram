@@ -93,8 +93,9 @@ END $$;
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Questions are viewable by authenticated users" ON public.questions;
-CREATE POLICY "Questions are viewable by authenticated users"
-  ON public.questions FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Questions are viewable by everyone" ON public.questions;
+CREATE POLICY "Questions are viewable by everyone"
+  ON public.questions FOR SELECT USING (true);
 
 -- ============================================
 -- USER PROGRESS TABLE

@@ -10,7 +10,7 @@ const subjects = [
         icon: Atom,
         color: 'from-blue-500 to-cyan-500',
         available: true,
-        chapters: ['Laws of Motion', 'Work, Energy & Power', 'Rotational Motion', 'Gravitation', 'Oscillations', 'Waves']
+        chapters: ['Laws of Motion', 'Gravitation', 'Oscillations', 'Waves']
     },
     {
         id: 'chemistry',
@@ -45,8 +45,8 @@ export default function ChapterwisePage() {
                     <div
                         key={subject.id}
                         className={`rounded-2xl border p-6 transition-all ${subject.available
-                                ? 'border-border bg-card hover:shadow-lg'
-                                : 'border-border bg-card/50 opacity-60'
+                            ? 'border-border bg-card hover:shadow-lg'
+                            : 'border-border bg-card/50 opacity-60'
                             }`}
                     >
                         <div className="flex items-start justify-between mb-4">

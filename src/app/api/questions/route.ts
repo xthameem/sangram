@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/server-supabase';
 import { NextResponse } from 'next/server';
+import { allQuestions } from '@/data/questions';
 
 export async function GET(request: Request) {
-    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
 
     const subject = searchParams.get('subject');
@@ -10,54 +10,95 @@ export async function GET(request: Request) {
     const difficulty = searchParams.get('difficulty');
     const exam = searchParams.get('exam') || 'KEAM';
 
-    let query = supabase
-        .from('questions')
-        .select('*')
-        .eq('exam', exam);
+    // Try Supabase first
+    try {
+        const supabase = await createClient();
+
+        let query = supabase
+            .from('questions')
+            .select('*')
+            .eq('exam', exam);
+
+        if (subject) {
+            query = query.eq('subject', subject);
+        }
+        if (chapter) {
+            query = query.eq('chapter', chapter);
+        }
+        if (difficulty) {
+            query = query.eq('difficulty', difficulty);
+        }
+
+        const { data: questions, error } = await query.order('created_at', { ascending: true });
+
+        if (!error && questions && questions.length > 0) {
+            // Get user progress for these questions
+            const { data: { user } } = await supabase.auth.getUser();
+            let userProgress: Record<string, boolean> = {};
+
+            if (user) {
+                const questionIds = questions?.map(q => q.id) || [];
+                const { data: progress } = await supabase
+                    .from('user_progress')
+                    .select('question_id, is_correct')
+                    .eq('user_id', user.id)
+                    .in('question_id', questionIds);
+
+                progress?.forEach(p => {
+                    userProgress[p.question_id] = p.is_correct;
+                });
+            }
+
+            // Add user progress to each question
+            const questionsWithProgress = questions?.map(q => ({
+                ...q,
+                userStatus: userProgress[q.id] !== undefined
+                    ? (userProgress[q.id] ? 'solved' : 'attempted')
+                    : 'unattempted'
+            }));
+
+            return NextResponse.json({
+                questions: questionsWithProgress,
+                total: questionsWithProgress?.length || 0
+            });
+        }
+    } catch (error) {
+        console.log('Supabase fetch failed, using local data:', error);
+    }
+
+    // Fallback to local data
+    let filteredQuestions = allQuestions.filter(q => q.exam === exam);
 
     if (subject) {
-        query = query.eq('subject', subject);
+        filteredQuestions = filteredQuestions.filter(q => q.subject === subject);
     }
     if (chapter) {
-        query = query.eq('chapter', chapter);
+        filteredQuestions = filteredQuestions.filter(q => q.chapter === chapter);
     }
     if (difficulty) {
-        query = query.eq('difficulty', difficulty);
+        filteredQuestions = filteredQuestions.filter(q => q.difficulty === difficulty);
     }
 
-    const { data: questions, error } = await query.order('created_at', { ascending: true });
-
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // Get user progress for these questions
-    const { data: { user } } = await supabase.auth.getUser();
-    let userProgress: Record<string, boolean> = {};
-
-    if (user) {
-        const questionIds = questions?.map(q => q.id) || [];
-        const { data: progress } = await supabase
-            .from('user_progress')
-            .select('question_id, is_correct')
-            .eq('user_id', user.id)
-            .in('question_id', questionIds);
-
-        progress?.forEach(p => {
-            userProgress[p.question_id] = p.is_correct;
-        });
-    }
-
-    // Add user progress to each question
-    const questionsWithProgress = questions?.map(q => ({
-        ...q,
-        userStatus: userProgress[q.id] !== undefined
-            ? (userProgress[q.id] ? 'solved' : 'attempted')
-            : 'unattempted'
+    const questionsWithProgress = filteredQuestions.map(q => ({
+        id: q.slug,
+        slug: q.slug,
+        title: q.title,
+        exam: q.exam,
+        subject: q.subject,
+        chapter: q.chapter,
+        topic: q.topic,
+        question_text: q.question_text,
+        options: q.options,
+        correct_answer: q.correct_answer,
+        explanation: q.explanation,
+        difficulty: q.difficulty,
+        hints: q.hints,
+        source: q.source,
+        userStatus: 'unattempted'
     }));
 
     return NextResponse.json({
         questions: questionsWithProgress,
-        total: questionsWithProgress?.length || 0
+        total: questionsWithProgress.length
     });
 }
