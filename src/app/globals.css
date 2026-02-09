@@ -11,6 +11,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -29,57 +30,48 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+/* Light Mode - Default */
 :root {
-  /* Common variables */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+
+  --border: #e2e8f0;
 }
 
-/* Light Mode Defaults */
-:root:not(.dark) {
-  --background: #FFFFFF;
-  --foreground: #020617;
-  /* Slate 950 */
-
-  --card: #F8FAFC;
-  /* Slate 50 */
-  --card-foreground: #020617;
-
-  --primary: #4F46E5;
-  /* Indigo 600 */
-  --primary-foreground: #FFFFFF;
-
-  --muted: #E2E8F0;
-  /* Slate 200 */
-  --muted-foreground: #64748B;
-  /* Slate 500 */
-
-  --accent: #3B82F6;
-  /* Blue 500 */
-  --accent-foreground: #FFFFFF;
-}
-
-/* Dark Mode Overrides */
+/* Dark Mode */
 .dark {
-  --background: #0B1120;
-  /* Very dark slate/blue */
-  --foreground: #F8FAFC;
-  /* Slate 50 */
+  --background: #0f172a;
+  --foreground: #f8fafc;
 
-  --card: #1E293B;
-  /* Slate 800 */
-  --card-foreground: #F8FAFC;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
 
-  --primary: #8B5CF6;
-  /* Violet 500 */
-  --primary-foreground: #FFFFFF;
+  --primary: #818cf8;
+  --primary-foreground: #ffffff;
 
   --muted: #334155;
-  /* Slate 700 */
-  --muted-foreground: #94A3B8;
-  /* Slate 400 */
+  --muted-foreground: #94a3b8;
 
-  --accent: #3B82F6;
-  /* Blue 500 */
-  --accent-foreground: #FFFFFF;
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+
+  --border: #334155;
+}
+
+* {
+  border-color: var(--border);
 }
 
 body {
@@ -87,4 +79,17 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Smooth transitions for theme change */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Fix for input autofill in light mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--card) inset;
+  -webkit-text-fill-color: var(--foreground);
 }

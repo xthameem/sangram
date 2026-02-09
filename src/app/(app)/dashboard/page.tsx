@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import {
-    ChevronRight, Atom, FlaskConical, Calculator, Lock, ArrowRight, User, MapPin, Target, Edit
+    ChevronRight, Atom, FlaskConical, Calculator, Lock, ArrowRight, MapPin, Target, Edit
 } from 'lucide-react';
 
 const exams = [
@@ -75,7 +74,7 @@ export default function DashboardPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
             </div>
         );
     }
@@ -87,14 +86,15 @@ export default function DashboardPage() {
         : profile.username.substring(0, 2).toUpperCase();
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+        <div className="pb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
 
-                {/* Left Sidebar - Profile Information (Only on Dashboard) */}
+                {/* Left Sidebar - Profile Information */}
                 <div className="lg:col-span-1">
                     <div className="sticky top-24 space-y-6">
-                        <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/50 shadow-sm p-6 flex flex-col items-center text-center backdrop-blur-sm">
-                            <div className="relative mb-4 h-24 w-24 overflow-hidden rounded-full border-4 border-slate-100 dark:border-slate-800 shadow-lg bg-slate-100 dark:bg-slate-800">
+                        {/* Profile Card */}
+                        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-6 flex flex-col items-center text-center">
+                            <div className="relative mb-4 h-20 w-20 overflow-hidden rounded-full border-4 border-slate-100 dark:border-slate-700 shadow-lg">
                                 {profile.avatar_url && profile.avatar_url.startsWith('http') ? (
                                     <img
                                         src={profile.avatar_url}
@@ -102,50 +102,52 @@ export default function DashboardPage() {
                                         className="h-full w-full object-cover"
                                     />
                                 ) : (
-                                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-2xl font-bold">
+                                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl font-bold">
                                         {userInitials}
                                     </div>
                                 )}
                             </div>
 
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate w-full px-2">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate w-full">
                                 {profile.full_name}
                             </h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-4">@{profile.username}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">@{profile.username}</p>
 
-                            <div className="w-full space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800 text-sm">
+                            <div className="w-full space-y-2 pt-4 border-t border-slate-100 dark:border-slate-700 text-sm">
                                 {profile.district && (
                                     <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                                         <div className="flex items-center gap-2">
-                                            <MapPin size={16} />
+                                            <MapPin size={14} />
                                             <span>District</span>
                                         </div>
-                                        <span className="font-medium text-slate-900 dark:text-white">{profile.district}</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-300">{profile.district}</span>
                                     </div>
                                 )}
                                 <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                                     <div className="flex items-center gap-2">
-                                        <Target size={16} />
+                                        <Target size={14} />
                                         <span>Target</span>
                                     </div>
-                                    <span className="font-medium text-primary bg-primary/10 px-2 py-0.5 rounded text-xs">{profile.target_exam || 'KEAM'}</span>
+                                    <span className="font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded text-xs">
+                                        {profile.target_exam || 'KEAM'}
+                                    </span>
                                 </div>
                             </div>
 
                             <Link
                                 href="/onboarding"
-                                className="mt-6 w-full py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                className="mt-5 w-full py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium transition-colors flex items-center justify-center gap-2"
                             >
                                 <Edit size={14} />
                                 Edit Profile
                             </Link>
                         </div>
 
-                        {/* Quick Stats or Motivation */}
-                        <div className="rounded-2xl border border-indigo-100 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-500/10 p-5">
+                        {/* Quick Stats Card */}
+                        <div className="rounded-2xl border border-indigo-100 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-5">
                             <h3 className="font-semibold mb-2 text-indigo-900 dark:text-indigo-100">Keep going! 🚀</h3>
-                            <p className="text-sm text-indigo-600/80 dark:text-indigo-300/80">Detailed progress stats are available in the "My Progress" tab.</p>
-                            <Link href="/dashboard/progress" className="mt-3 text-sm text-primary font-medium hover:underline block">
+                            <p className="text-sm text-indigo-700 dark:text-indigo-300">View your detailed progress and stats.</p>
+                            <Link href="/dashboard/progress" className="mt-3 text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:underline block">
                                 View Full Stats →
                             </Link>
                         </div>
@@ -153,67 +155,67 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Right Content - Exams & Subjects */}
-                <div className="lg:col-span-3 space-y-10">
+                <div className="lg:col-span-3 space-y-8">
                     {/* Welcome Section */}
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
                             Hello, {profile.full_name.split(' ')[0]}! 👋
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
+                        <p className="text-slate-600 dark:text-slate-400 mt-1">
                             Ready to continue your preparation?
                         </p>
                     </div>
 
                     {/* Exam Selection */}
                     <div>
-                        <h2 className="text-xl font-semibold mb-5 text-slate-900 dark:text-white">Choose Your Exam</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Choose Your Exam</h2>
+                        <div className="grid grid-cols-2 gap-4">
                             {exams.map((exam) => (
                                 <div
                                     key={exam.id}
-                                    className={`relative rounded-2xl border p-6 transition-all ${exam.available
-                                        ? 'border-primary/50 bg-primary/5 hover:bg-primary/10 cursor-pointer hover:shadow-lg hover:-translate-y-1'
-                                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 opacity-60'
+                                    className={`relative rounded-2xl border p-5 transition-all cursor-pointer ${exam.available
+                                        ? 'border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/50'
+                                        : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 opacity-60 cursor-not-allowed'
                                         }`}
                                     onClick={() => exam.available && router.push('/keam')}
                                 >
                                     {!exam.available && (
-                                        <div className="absolute top-4 right-4">
-                                            <Lock size={16} className="text-slate-400" />
+                                        <div className="absolute top-3 right-3">
+                                            <Lock size={14} className="text-slate-400" />
                                         </div>
                                     )}
-                                    <h3 className="font-bold text-xl text-slate-900 dark:text-white">{exam.name}</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{exam.description}</p>
+                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">{exam.name}</h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{exam.description}</p>
                                     {exam.available ? (
-                                        <div className="mt-4 flex items-center text-primary text-sm font-medium">
+                                        <div className="mt-3 flex items-center text-indigo-600 dark:text-indigo-400 text-sm font-medium">
                                             Start Practice <ArrowRight size={14} className="ml-1" />
                                         </div>
                                     ) : (
-                                        <div className="mt-4 text-xs text-slate-500 dark:text-slate-400 font-medium px-2 py-1 bg-slate-200 dark:bg-slate-800 rounded w-fit">Coming Soon</div>
+                                        <div className="mt-3 text-xs text-slate-500 bg-slate-200 dark:bg-slate-700 rounded px-2 py-1 w-fit">Coming Soon</div>
                                     )}
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Subject Progress */}
+                    {/* Subject Cards */}
                     <div>
-                        <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Quick Start - Subjects</h2>
-                            <Link href="/keam/chapterwise" className="text-sm text-primary hover:underline font-medium">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Quick Start - Subjects</h2>
+                            <Link href="/keam/chapterwise" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
                                 View All Chapters
                             </Link>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {subjects.map((subject) => (
                                 <Link
                                     key={subject.id}
                                     href={`/keam/chapterwise/${subject.id}`}
-                                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/50 p-6 hover:shadow-md hover:border-primary/30 transition-all group hover:-translate-y-1"
+                                    className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all group"
                                 >
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className={`p-3 rounded-2xl bg-gradient-to-br ${subject.color} text-white shadow-md`}>
-                                            <subject.icon size={24} />
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white shadow-md`}>
+                                            <subject.icon size={22} />
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-slate-900 dark:text-white">{subject.name}</h3>
@@ -223,7 +225,7 @@ export default function DashboardPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center text-sm text-primary font-medium group-hover:gap-2 gap-1 transition-all">
+                                    <div className="flex items-center text-sm text-indigo-600 dark:text-indigo-400 font-medium group-hover:gap-2 gap-1 transition-all">
                                         Start Now <ChevronRight size={16} />
                                     </div>
                                 </Link>
