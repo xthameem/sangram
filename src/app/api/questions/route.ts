@@ -37,23 +37,25 @@ export async function GET(request: Request) {
             let userProgress: Record<string, boolean> = {};
 
             if (user) {
-                const questionIds = questions?.map(q => q.id) || [];
+                // Use slug for progress tracking (consistent with local data)
+                const slugs = questions?.map(q => q.slug) || [];
                 const { data: progress } = await supabase
                     .from('user_progress')
                     .select('question_id, is_correct')
                     .eq('user_id', user.id)
-                    .in('question_id', questionIds);
+                    .in('question_id', slugs);
 
                 progress?.forEach(p => {
                     userProgress[p.question_id] = p.is_correct;
                 });
             }
 
-            // Add user progress to each question
+            // Add user progress to each question - USE SLUG AS ID for consistency!
             const questionsWithProgress = questions?.map(q => ({
                 ...q,
-                userStatus: userProgress[q.id] !== undefined
-                    ? (userProgress[q.id] ? 'solved' : 'attempted')
+                id: q.slug, // Use slug as the ID for URL routing
+                userStatus: userProgress[q.slug] !== undefined
+                    ? (userProgress[q.slug] ? 'solved' : 'attempted')
                     : 'unattempted'
             }));
 

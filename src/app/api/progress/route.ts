@@ -11,9 +11,20 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { questionId, isCorrect, timeTaken } = body;
+    const { questionId, isCorrect, timeTaken, isMockTest } = body;
 
-    // Upsert progress (update if exists, insert if not)
+    // Check if this is a FIRST attempt (never attempted before)
+    const { data: existingProgress } = await supabase
+        .from('user_progress')
+        .select('id, is_correct')
+        .eq('user_id', user.id)
+        .eq('question_id', questionId)
+        .single();
+
+    const isFirstAttempt = !existingProgress;
+    const wasAlreadyCorrect = existingProgress?.is_correct === true;
+
+    // Upsert progress (always update to track latest attempt)
     const { error } = await supabase
         .from('user_progress')
         .upsert({
@@ -30,7 +41,111 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    // LEADERBOARD SCORING LOGIC:
+    // - Only FIRST correct answer gives points (no exploiting by re-attempting)
+    // - No negative marking for wrong answers in leaderboard (fair for all)
+    // - Chapterwise: +1 point for first correct
+    // - Mock Test: Score is calculated separately with 2x multipliers
+
+    let pointsEarned = 0;
+
+    // Only award points if:
+    // 1. It's a correct answer
+    // 2. It's either a first attempt OR the question wasn't solved before
+    if (isCorrect && isFirstAttempt && !wasAlreadyCorrect) {
+        if (isMockTest) {
+            // Mock tests handle their own scoring
+            pointsEarned = 0;
+        } else {
+            // Chapterwise practice: +1 point for first correct answer only
+            pointsEarned = 1;
+        }
+    }
+
+    // Update leaderboard if points were earned
+    if (pointsEarned > 0) {
+        // Get current score
+        const { data: currentScore } = await supabase
+            .from('leaderboard')
+            .select('score, total_attempts, correct_answers')
+            .eq('user_id', user.id)
+            .single();
+
+        if (currentScore) {
+            // Update existing entry
+            await supabase
+                .from('leaderboard')
+                .update({
+                    score: currentScore.score + pointsEarned,
+                    total_attempts: currentScore.total_attempts + 1,
+                    correct_answers: isCorrect ? currentScore.correct_answers + 1 : currentScore.correct_answers,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', user.id);
+        } else {
+            // Create new leaderboard entry
+            // Get username
+            const { data: userProfile } = await supabase
+                .from('users')
+                .select('username')
+                .eq('id', user.id)
+                .single();
+
+            await supabase
+                .from('leaderboard')
+                .insert({
+                    user_id: user.id,
+                    username: userProfile?.username || 'Anonymous',
+                    score: pointsEarned,
+                    total_attempts: 1,
+                    correct_answers: isCorrect ? 1 : 0,
+                });
+        }
+    } else if (isFirstAttempt) {
+        // Track attempt even if wrong (but no points)
+        const { data: currentScore } = await supabase
+            .from('leaderboard')
+            .select('score, total_attempts, correct_answers')
+            .eq('user_id', user.id)
+            .single();
+
+        if (currentScore) {
+            await supabase
+                .from('leaderboard')
+                .update({
+                    total_attempts: currentScore.total_attempts + 1,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', user.id);
+        } else {
+            const { data: userProfile } = await supabase
+                .from('users')
+                .select('username')
+                .eq('id', user.id)
+                .single();
+
+            await supabase
+                .from('leaderboard')
+                .insert({
+                    user_id: user.id,
+                    username: userProfile?.username || 'Anonymous',
+                    score: 0,
+                    total_attempts: 1,
+                    correct_answers: 0,
+                });
+        }
+    }
+
+    return NextResponse.json({
+        success: true,
+        isFirstAttempt,
+        pointsEarned,
+        message: isCorrect && isFirstAttempt
+            ? `+${pointsEarned} point added to leaderboard!`
+            : isCorrect && !isFirstAttempt
+                ? 'Already attempted - no additional points'
+                : 'Wrong answer - no negative marking'
+    });
 }
 
 export async function GET(request: Request) {
