@@ -22,10 +22,16 @@ BEGIN
       full_name TEXT,
       avatar_url TEXT,
       target_exam TEXT DEFAULT 'KEAM',
+      district TEXT,
+      mobile TEXT,
       bio TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
+  ELSE
+    -- Add columns if they don't exist
+    BEGIN ALTER TABLE public.profiles ADD COLUMN district TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
+    BEGIN ALTER TABLE public.profiles ADD COLUMN mobile TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
   END IF;
 END $$;
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Trophy, Medal, Crown, User, Eye, X, BarChart3, Target, Zap, TrendingUp } from 'lucide-react';
 
 interface LeaderboardEntry {
@@ -37,7 +38,28 @@ export default function LeaderboardPage() {
                 setLoading(false);
             }
         };
+
         fetchLeaderboard();
+
+        // Real-time updates
+        const channel = supabase
+            .channel('leaderboard-updates')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'user_progress',
+                },
+                () => {
+                    fetchLeaderboard();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const getRankIcon = (rank: number) => {

@@ -38,6 +38,26 @@ export default function ProgressPage() {
         chaptersCompleted: 0,
     });
 
+    const fetchStats = async () => {
+        try {
+            const res = await fetch('/api/dashboard/stats');
+            if (res.ok) {
+                const data = await res.json();
+                setStats({
+                    questionsAttempted: data.totalAttempts || 0,
+                    correctAnswers: data.correctAnswers || 0,
+                    accuracy: data.accuracy || 0,
+                    totalScore: data.score || 0,
+                    rank: data.rank || 0,
+                    mockTestsTaken: data.mockTests || 0,
+                    chaptersCompleted: data.chapters || 0,
+                });
+            }
+        } catch (e) {
+            console.log('Stats fetch error', e);
+        }
+    };
+
     useEffect(() => {
         const checkAuth = async () => {
             try {
@@ -53,24 +73,30 @@ export default function ProgressPage() {
                     username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'User',
                 });
 
-                // Fetch stats from API
-                try {
-                    const res = await fetch('/api/dashboard/stats');
-                    if (res.ok) {
-                        const data = await res.json();
-                        setStats({
-                            questionsAttempted: data.totalAttempts || 0,
-                            correctAnswers: data.correctAnswers || 0,
-                            accuracy: data.accuracy || 0,
-                            totalScore: data.score || 0,
-                            rank: data.rank || 0,
-                            mockTestsTaken: data.mockTests || 0,
-                            chaptersCompleted: data.chapters || 0,
-                        });
-                    }
-                } catch (e) {
-                    console.log('Stats not available yet');
-                }
+                // Initial Fetch
+                await fetchStats();
+
+                // Real-time Subscription for MY progress
+                const channel = supabase
+                    .channel('my-progress-updates')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'user_progress',
+                            filter: `user_id=eq.${authUser.id}`
+                        },
+                        () => {
+                            fetchStats();
+                        }
+                    )
+                    .subscribe();
+
+                return () => {
+                    supabase.removeChannel(channel);
+                };
+
             } catch (error) {
                 console.error('Auth error:', error);
                 router.push('/');
