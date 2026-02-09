@@ -21,6 +21,7 @@ export default function Header() {
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/keam', label: 'Practice' },
+    { href: '/dashboard/progress', label: 'My Progress' },
     { href: '/leaderboard', label: 'Leaderboard' },
   ];
 
@@ -51,8 +52,8 @@ export default function Header() {
               key={link.href}
               href={link.href}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive(link.href)
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/5'
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/5'
                 }`}
             >
               {link.label}
@@ -92,8 +93,8 @@ export default function Header() {
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive(link.href)
-                    ? 'text-primary bg-primary/10'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/5'
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-white/5'
                   }`}
               >
                 {link.label}

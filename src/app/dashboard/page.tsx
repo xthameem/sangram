@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import {
-    BookOpen, Target, Trophy, Clock, ChevronRight,
-    Atom, FlaskConical, Calculator, Lock, ArrowRight
+    ChevronRight, Atom, FlaskConical, Calculator, Lock, ArrowRight
 } from 'lucide-react';
 
 const exams = [
@@ -42,7 +41,6 @@ export default function DashboardPage() {
                     return;
                 }
 
-                // Set basic user info from auth
                 setUser({
                     email: authUser.email || '',
                     username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'User',
@@ -70,7 +68,6 @@ export default function DashboardPage() {
         return null;
     }
 
-    const userInitials = user.username.substring(0, 2).toUpperCase();
     const needsUsername = user.username === user.email.split('@')[0] || user.username.includes('@');
 
     return (
@@ -91,74 +88,17 @@ export default function DashboardPage() {
                 </Link>
             )}
 
-            {/* Welcome Section */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">
-                        Welcome, {user.username}! 👋
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Start your preparation journey today!
-                    </p>
-                </div>
-                <Link
-                    href="/dashboard/profile"
-                    className="flex items-center gap-3 px-4 py-2 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors"
-                >
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                        {userInitials}
-                    </div>
-                    <div className="text-left">
-                        <div className="font-medium text-sm">{user.username}</div>
-                        <div className="text-xs text-muted-foreground">View Profile</div>
-                    </div>
-                </Link>
+            {/* Welcome Section - Simple */}
+            <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                    Welcome, {user.username}! 👋
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                    Choose an exam to start practicing
+                </p>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
-                            <BookOpen size={20} />
-                        </div>
-                    </div>
-                    <div className="text-2xl font-bold text-muted-foreground">-</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Questions Attempted</div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
-                            <Target size={20} />
-                        </div>
-                    </div>
-                    <div className="text-2xl font-bold text-muted-foreground">-</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Accuracy Rate</div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
-                            <Trophy size={20} />
-                        </div>
-                    </div>
-                    <div className="text-2xl font-bold text-muted-foreground">-</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Total Score</div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
-                            <Clock size={20} />
-                        </div>
-                    </div>
-                    <div className="text-2xl font-bold text-muted-foreground">-</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Your Rank</div>
-                </div>
-            </div>
-
-            {/* Exam Selection */}
+            {/* Exam Selection - Now at Top */}
             <div>
                 <h2 className="text-xl font-semibold mb-4">Choose Your Exam</h2>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -166,8 +106,8 @@ export default function DashboardPage() {
                         <div
                             key={exam.id}
                             className={`relative rounded-2xl border p-5 transition-all ${exam.available
-                                    ? 'border-primary/50 bg-primary/5 hover:bg-primary/10 cursor-pointer'
-                                    : 'border-border bg-card/50 opacity-60'
+                                ? 'border-primary/50 bg-primary/5 hover:bg-primary/10 cursor-pointer hover:shadow-lg'
+                                : 'border-border bg-card/50 opacity-60'
                                 }`}
                             onClick={() => exam.available && router.push('/keam')}
                         >
@@ -193,7 +133,7 @@ export default function DashboardPage() {
             {/* Subject Progress */}
             <div>
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold">Subject Progress</h2>
+                    <h2 className="text-xl font-semibold">Quick Start - Subjects</h2>
                     <Link href="/keam/chapterwise" className="text-sm text-primary hover:underline">
                         View All Chapters
                     </Link>
@@ -203,7 +143,7 @@ export default function DashboardPage() {
                         <Link
                             key={subject.id}
                             href={`/keam/chapterwise/${subject.id}`}
-                            className="rounded-2xl border border-border bg-card p-5 hover:shadow-md transition-all group"
+                            className="rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-primary/30 transition-all group"
                         >
                             <div className="flex items-center gap-3 mb-4">
                                 <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white`}>
@@ -212,42 +152,16 @@ export default function DashboardPage() {
                                 <div>
                                     <h3 className="font-semibold">{subject.name}</h3>
                                     <p className="text-xs text-muted-foreground">
-                                        Start practicing
+                                        Practice questions
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Progress</span>
-                                    <span className="font-medium text-muted-foreground">-</span>
-                                </div>
-                                <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                                    <div className={`h-full rounded-full bg-gradient-to-r ${subject.color} w-0`} />
-                                </div>
-                            </div>
-
-                            <div className="mt-4 flex items-center text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                                Practice Now <ChevronRight size={16} className="ml-1" />
+                            <div className="flex items-center text-sm text-primary font-medium group-hover:gap-2 gap-1 transition-all">
+                                Start Now <ChevronRight size={16} />
                             </div>
                         </Link>
                     ))}
-                </div>
-            </div>
-
-            {/* Leaderboard Preview */}
-            <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold">Leaderboard</h2>
-                    <Link href="/leaderboard" className="text-sm text-primary hover:underline">
-                        View Full Rankings
-                    </Link>
-                </div>
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <div className="text-center py-6 text-muted-foreground">
-                        <Trophy size={40} className="mx-auto mb-3 opacity-50" />
-                        <p>Solve questions to appear on the leaderboard!</p>
-                    </div>
                 </div>
             </div>
         </div>
