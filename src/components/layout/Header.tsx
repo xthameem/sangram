@@ -31,7 +31,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 h-16 w-full border-b border-slate-200 dark:border-white/5 bg-background/80 backdrop-blur-xl transition-colors">
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         {/* Logo - Left Corner */}
-        <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
             <Image
               src="/logo.svg"
@@ -45,8 +45,8 @@ export default function Header() {
           <span className="text-xl font-bold tracking-tight hidden sm:block text-slate-800 dark:text-white">sangram</span>
         </Link>
 
-        {/* Navigation Links - Center (Desktop but hidden on LG sidebar layout) */}
-        <nav className="hidden md:flex lg:hidden items-center gap-1">
+        {/* Navigation Links - Center (Desktop) */}
+        <nav className="hidden md:flex items-center gap-1">
           {navLinks.map(link => (
             <Link
               key={link.href}
