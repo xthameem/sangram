@@ -54,7 +54,6 @@ export default function DashboardPage() {
                 if (data) {
                     setProfile(data);
                 } else {
-                    // Should be handled by layout guard ideally, but safe fallback
                     setProfile({
                         username: user.email?.split('@')[0] || 'User',
                         full_name: 'Student',
@@ -88,14 +87,14 @@ export default function DashboardPage() {
         : profile.username.substring(0, 2).toUpperCase();
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
 
                 {/* Left Sidebar - Profile Information (Only on Dashboard) */}
                 <div className="lg:col-span-1">
                     <div className="sticky top-24 space-y-6">
-                        <div className="rounded-2xl border border-border bg-card shadow-sm p-6 flex flex-col items-center text-center">
-                            <div className="relative mb-4 h-24 w-24 overflow-hidden rounded-full border-4 border-background shadow-lg">
+                        <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/50 shadow-sm p-6 flex flex-col items-center text-center backdrop-blur-sm">
+                            <div className="relative mb-4 h-24 w-24 overflow-hidden rounded-full border-4 border-slate-100 dark:border-slate-800 shadow-lg bg-slate-100 dark:bg-slate-800">
                                 {profile.avatar_url && profile.avatar_url.startsWith('http') ? (
                                     <img
                                         src={profile.avatar_url}
@@ -109,22 +108,22 @@ export default function DashboardPage() {
                                 )}
                             </div>
 
-                            <h2 className="text-xl font-bold text-foreground truncate w-full px-2">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate w-full px-2">
                                 {profile.full_name}
                             </h2>
-                            <p className="text-sm text-muted-foreground font-medium mb-4">@{profile.username}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-4">@{profile.username}</p>
 
-                            <div className="w-full space-y-3 pt-4 border-t border-border/50 text-sm">
+                            <div className="w-full space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800 text-sm">
                                 {profile.district && (
-                                    <div className="flex items-center justify-between text-muted-foreground">
+                                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                                         <div className="flex items-center gap-2">
                                             <MapPin size={16} />
                                             <span>District</span>
                                         </div>
-                                        <span className="font-medium text-foreground">{profile.district}</span>
+                                        <span className="font-medium text-slate-900 dark:text-white">{profile.district}</span>
                                     </div>
                                 )}
-                                <div className="flex items-center justify-between text-muted-foreground">
+                                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
                                     <div className="flex items-center gap-2">
                                         <Target size={16} />
                                         <span>Target</span>
@@ -135,7 +134,7 @@ export default function DashboardPage() {
 
                             <Link
                                 href="/onboarding"
-                                className="mt-6 w-full py-2 px-4 rounded-xl border border-border bg-secondary/50 hover:bg-secondary text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                className="mt-6 w-full py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
                             >
                                 <Edit size={14} />
                                 Edit Profile
@@ -143,9 +142,9 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Quick Stats or Motivation */}
-                        <div className="rounded-2xl border border-border bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-5">
-                            <h3 className="font-semibold mb-2">Keep going! 🚀</h3>
-                            <p className="text-sm text-muted-foreground">Detailed progress stats are available in the "My Progress" tab.</p>
+                        <div className="rounded-2xl border border-indigo-100 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-500/10 p-5">
+                            <h3 className="font-semibold mb-2 text-indigo-900 dark:text-indigo-100">Keep going! 🚀</h3>
+                            <p className="text-sm text-indigo-600/80 dark:text-indigo-300/80">Detailed progress stats are available in the "My Progress" tab.</p>
                             <Link href="/dashboard/progress" className="mt-3 text-sm text-primary font-medium hover:underline block">
                                 View Full Stats →
                             </Link>
@@ -154,43 +153,43 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Right Content - Exams & Subjects */}
-                <div className="lg:col-span-3 space-y-8">
+                <div className="lg:col-span-3 space-y-10">
                     {/* Welcome Section */}
                     <div>
-                        <h1 className="text-3xl font-bold text-foreground">
+                        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
                             Hello, {profile.full_name.split(' ')[0]}! 👋
                         </h1>
-                        <p className="text-muted-foreground mt-1">
+                        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
                             Ready to continue your preparation?
                         </p>
                     </div>
 
                     {/* Exam Selection */}
                     <div>
-                        <h2 className="text-xl font-semibold mb-4">Choose Your Exam</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <h2 className="text-xl font-semibold mb-5 text-slate-900 dark:text-white">Choose Your Exam</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             {exams.map((exam) => (
                                 <div
                                     key={exam.id}
-                                    className={`relative rounded-2xl border p-5 transition-all ${exam.available
-                                        ? 'border-primary/50 bg-primary/5 hover:bg-primary/10 cursor-pointer hover:shadow-lg'
-                                        : 'border-border bg-card/50 opacity-60'
+                                    className={`relative rounded-2xl border p-6 transition-all ${exam.available
+                                        ? 'border-primary/50 bg-primary/5 hover:bg-primary/10 cursor-pointer hover:shadow-lg hover:-translate-y-1'
+                                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 opacity-60'
                                         }`}
                                     onClick={() => exam.available && router.push('/keam')}
                                 >
                                     {!exam.available && (
-                                        <div className="absolute top-3 right-3">
-                                            <Lock size={16} className="text-muted-foreground" />
+                                        <div className="absolute top-4 right-4">
+                                            <Lock size={16} className="text-slate-400" />
                                         </div>
                                     )}
-                                    <h3 className="font-bold text-lg">{exam.name}</h3>
-                                    <p className="text-xs text-muted-foreground mt-1">{exam.description}</p>
+                                    <h3 className="font-bold text-xl text-slate-900 dark:text-white">{exam.name}</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{exam.description}</p>
                                     {exam.available ? (
-                                        <div className="mt-3 flex items-center text-primary text-sm font-medium">
+                                        <div className="mt-4 flex items-center text-primary text-sm font-medium">
                                             Start Practice <ArrowRight size={14} className="ml-1" />
                                         </div>
                                     ) : (
-                                        <div className="mt-3 text-xs text-muted-foreground">Coming Soon</div>
+                                        <div className="mt-4 text-xs text-slate-500 dark:text-slate-400 font-medium px-2 py-1 bg-slate-200 dark:bg-slate-800 rounded w-fit">Coming Soon</div>
                                     )}
                                 </div>
                             ))}
@@ -199,26 +198,26 @@ export default function DashboardPage() {
 
                     {/* Subject Progress */}
                     <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold">Quick Start - Subjects</h2>
-                            <Link href="/keam/chapterwise" className="text-sm text-primary hover:underline">
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Quick Start - Subjects</h2>
+                            <Link href="/keam/chapterwise" className="text-sm text-primary hover:underline font-medium">
                                 View All Chapters
                             </Link>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                             {subjects.map((subject) => (
                                 <Link
                                     key={subject.id}
                                     href={`/keam/chapterwise/${subject.id}`}
-                                    className="rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-primary/30 transition-all group"
+                                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/50 p-6 hover:shadow-md hover:border-primary/30 transition-all group hover:-translate-y-1"
                                 >
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white`}>
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className={`p-3 rounded-2xl bg-gradient-to-br ${subject.color} text-white shadow-md`}>
                                             <subject.icon size={24} />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold">{subject.name}</h3>
-                                            <p className="text-xs text-muted-foreground">
+                                            <h3 className="font-semibold text-slate-900 dark:text-white">{subject.name}</h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
                                                 Practice questions
                                             </p>
                                         </div>
