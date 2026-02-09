@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Atom, FlaskConical, Calculator, ChevronRight, Lock } from 'lucide-react';
+import { Atom, FlaskConical, Calculator, ChevronRight } from 'lucide-react';
 
 const subjects = [
     {
@@ -17,16 +17,16 @@ const subjects = [
         name: 'Chemistry',
         icon: FlaskConical,
         color: 'from-green-500 to-emerald-500',
-        available: false,
-        chapters: []
+        available: true,
+        chapters: ['Structure of Atom', 'Thermodynamics']
     },
     {
         id: 'maths',
         name: 'Mathematics',
         icon: Calculator,
         color: 'from-purple-500 to-pink-500',
-        available: false,
-        chapters: []
+        available: true,
+        chapters: ['Trigonometry', 'Probability', 'Definite Integrals']
     },
 ];
 
@@ -38,6 +38,7 @@ export default function ChapterwisePage() {
                 <p className="text-muted-foreground mt-1">
                     Select a subject to start practicing chapter by chapter
                 </p>
+                <p className="text-xs text-yellow-500 mt-2">💡 Tip: Mock tests give 2x leaderboard points!</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
@@ -53,11 +54,9 @@ export default function ChapterwisePage() {
                             <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white`}>
                                 <subject.icon size={28} />
                             </div>
-                            {!subject.available && (
-                                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-secondary text-xs font-medium text-muted-foreground">
-                                    <Lock size={12} /> Coming Soon
-                                </span>
-                            )}
+                            <span className="px-2 py-1 rounded-full bg-secondary text-xs font-medium text-muted-foreground">
+                                +1 pt/correct
+                            </span>
                         </div>
 
                         <h3 className="text-xl font-semibold mb-2">{subject.name}</h3>
