@@ -161,10 +161,10 @@ export default function AuthPage() {
               <span className="text-2xl font-bold">sangram</span>
             </div>
 
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
               {isSignUp ? 'Create an account' : 'Welcome back!'}
             </h2>
-            <p className="mt-2 text-muted-foreground">
+            <p className="mt-2 text-slate-600 dark:text-slate-400">
               {isSignUp ? 'Start your KEAM preparation journey today.' : 'Please sign in to your account.'}
             </p>
           </div>
@@ -194,25 +194,25 @@ export default function AuthPage() {
             )}
 
             <div className="group space-y-2">
-              <label className="text-sm font-medium leading-none text-muted-foreground group-focus-within:text-primary transition-colors" htmlFor="email">Email</label>
+              <label className="text-sm font-medium leading-none text-slate-600 dark:text-slate-400 group-focus-within:text-primary transition-colors" htmlFor="email">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3.5 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <Mail className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500 transition-colors group-focus-within:text-primary" />
                 <input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-foreground"
+                  className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-slate-900 dark:text-white"
                   placeholder="name@example.com"
                 />
               </div>
             </div>
 
             <div className="group space-y-2">
-              <label className="text-sm font-medium leading-none text-muted-foreground group-focus-within:text-primary transition-colors" htmlFor="password">Password</label>
+              <label className="text-sm font-medium leading-none text-slate-600 dark:text-slate-400 group-focus-within:text-primary transition-colors" htmlFor="password">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500 transition-colors group-focus-within:text-primary" />
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
@@ -220,13 +220,13 @@ export default function AuthPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-foreground"
+                  className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 px-3 py-1 pl-11 text-sm shadow-sm transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary text-slate-900 dark:text-white"
                   placeholder="Your password (min 6 chars)"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
