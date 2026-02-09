@@ -40,7 +40,15 @@ export default function ProgressPage() {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('/api/dashboard/stats');
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            const res = await fetch('/api/dashboard/stats', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
             if (res.ok) {
                 const data = await res.json();
                 setStats({
