@@ -20,7 +20,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/keam', label: 'Practice' },
+    { href: '#', label: 'Study', comingSoon: true },
     { href: '/dashboard/progress', label: 'My Progress' },
     { href: '/leaderboard', label: 'Leaderboard' },
   ];
@@ -48,16 +48,26 @@ export default function Header() {
         {/* Navigation Links - Center (Desktop) */}
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive(link.href)
-                ? 'text-primary bg-primary/10'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-            >
-              {link.label}
-            </Link>
+            link.comingSoon ? (
+              <span
+                key={link.label}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground/50 cursor-default flex items-center gap-1.5"
+              >
+                {link.label}
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground font-medium">Soon</span>
+              </span>
+            ) : (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive(link.href)
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+              >
+                {link.label}
+              </Link>
+            )
           ))}
         </nav>
 
@@ -88,17 +98,27 @@ export default function Header() {
         <div className="md:hidden border-t border-border bg-card">
           <nav className="flex flex-col p-2">
             {navLinks.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive(link.href)
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  }`}
-              >
-                {link.label}
-              </Link>
+              link.comingSoon ? (
+                <span
+                  key={link.label}
+                  className="px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground/50 cursor-default flex items-center gap-2"
+                >
+                  {link.label}
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground font-medium">Coming Soon</span>
+                </span>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive(link.href)
+                    ? 'text-primary bg-primary/10'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
           </nav>
         </div>
