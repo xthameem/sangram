@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import {
     BookOpen, Target, Trophy, CheckCircle2, ChevronRight,
@@ -132,17 +131,13 @@ export default function DashboardPage() {
             {/* Welcome Banner */}
             <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                            {user.avatar_url ? (
-                                <Image src={user.avatar_url} alt={user.username} width={56} height={56} className="rounded-full" />
-                            ) : (
-                                userInitials
-                            )}
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0">
+                            {userInitials}
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-foreground">
-                                Welcome back, {user.full_name || user.username}! 👋
+                                Welcome back, {user.full_name}! 👋
                             </h1>
                             <p className="text-muted-foreground text-sm mt-0.5">
                                 @{user.username} • Preparing for {user.exam}
@@ -319,8 +314,8 @@ export default function DashboardPage() {
                         key={exam.name}
                         href={exam.available ? exam.href : '#'}
                         className={`group relative rounded-2xl border p-5 transition-all duration-300 ${exam.available
-                                ? `border-border bg-card hover:border-primary/30 hover:shadow-lg ${exam.bgGlow}`
-                                : 'border-border bg-card/50 opacity-60 cursor-default'
+                            ? `border-border bg-card hover:border-primary/30 hover:shadow-lg ${exam.bgGlow}`
+                            : 'border-border bg-card/50 opacity-60 cursor-default'
                             }`}
                     >
                         <div className={`inline-flex p-2.5 rounded-xl bg-gradient-to-br ${exam.gradient} text-white mb-3 shadow-lg`}>

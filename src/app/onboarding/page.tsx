@@ -2,23 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { KERALA_DISTRICTS } from '@/data/kerala-districts';
 import { supabase } from '@/lib/supabase';
-import { User, Camera } from 'lucide-react';
 import Image from 'next/image';
+import { Loader2 } from 'lucide-react';
 
 export default function OnboardingPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [checking, setChecking] = useState(true);
     const [user, setUser] = useState<any>(null);
 
     const [fullName, setFullName] = useState('');
     const [username, setUsername] = useState('');
-    const [district, setDistrict] = useState('');
-    const [mobile, setMobile] = useState('');
-    const [avatarUrl, setAvatarUrl] = useState('');
-    const [avatarFile, setAvatarFile] = useState<File | null>(null);
-
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
@@ -38,16 +33,12 @@ export default function OnboardingPage() {
                 .single();
 
             if (profile?.username && profile?.full_name) {
-                // Already onboarded
                 router.push('/dashboard');
             } else if (profile) {
-                // Pre-fill if partial data
                 setFullName(profile.full_name || '');
                 setUsername(profile.username || '');
-                setDistrict(profile.district || '');
-                setMobile(profile.mobile || '');
-                setAvatarUrl(profile.avatar_url || '');
             }
+            setChecking(false);
         };
         getUser();
     }, [router]);
@@ -56,11 +47,16 @@ export default function OnboardingPage() {
         const newErrors: Record<string, string> = {};
 
         if (!fullName.trim()) newErrors.fullName = 'Name is required';
+        if (fullName.trim().length < 2) newErrors.fullName = 'Name must be at least 2 characters';
 
         if (!username.trim()) {
             newErrors.username = 'Username is required';
         } else if (!/^[a-z0-9._]+$/.test(username)) {
-            newErrors.username = 'Only lowercase letters, numbers, dots, and underscores allowed';
+            newErrors.username = 'Only lowercase letters, numbers, dots, and underscores';
+        } else if (username.length < 3) {
+            newErrors.username = 'Username must be at least 3 characters';
+        } else if (username.length > 20) {
+            newErrors.username = 'Username must be 20 characters or less';
         }
 
         setErrors(newErrors);
@@ -73,42 +69,16 @@ export default function OnboardingPage() {
 
         setLoading(true);
         try {
-            // Upload Avatar if file selected
-            let finalAvatarUrl = avatarUrl;
-
-            if (avatarFile) {
-                const fileExt = avatarFile.name.split('.').pop();
-                const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-                const { error: uploadError, data } = await supabase.storage
-                    .from('avatars')
-                    .upload(fileName, avatarFile, { upsert: true });
-
-                if (uploadError) {
-                    console.error('Avatar upload failed:', uploadError);
-                    // Proceed without failing completely, or show error?
-                    // I'll log it and proceed with default avatar if old url was empty
-                    if (uploadError.message.includes('Bucket not found')) {
-                        console.warn('Avatars bucket missing. Please create it.');
-                    }
-                } else {
-                    // Get Public URL
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('avatars')
-                        .getPublicUrl(fileName);
-                    finalAvatarUrl = publicUrl;
-                }
-            }
-
             // Check username uniqueness
             const { data: existing } = await supabase
                 .from('profiles')
                 .select('id')
                 .eq('username', username)
-                .neq('id', user.id) // Exclude self
+                .neq('id', user.id)
                 .single();
 
             if (existing) {
-                setErrors({ ...errors, username: 'Username already taken' });
+                setErrors({ username: 'Username already taken' });
                 setLoading(false);
                 return;
             }
@@ -117,39 +87,32 @@ export default function OnboardingPage() {
                 .from('profiles')
                 .upsert({
                     id: user.id,
-                    full_name: fullName,
-                    username,
-                    district: district || null,
-                    mobile: mobile || null,
-                    avatar_url: finalAvatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
-                    updated_at: new Date().toISOString()
+                    full_name: fullName.trim(),
+                    username: username.trim(),
+                    avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName.trim())}&background=random`,
+                    username_changed_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
                 });
 
             if (error) throw error;
-
             router.push('/dashboard');
         } catch (error: any) {
             console.error('Error updating profile:', error);
 
-            // Graceful fallback: If 'district' or 'mobile' columns missing (Schema Mismatch)
-            // Postgres Error 42703: undefined_column, or PostgREST error "Could not find..."
+            // Fallback for missing columns
             if (
                 error.code === '42703' ||
                 error.message?.includes('does not exist') ||
                 error.message?.includes('Could not find')
             ) {
                 try {
-                    console.log('Retrying with basic profile info...');
                     const { error: retryError } = await supabase.from('profiles').upsert({
                         id: user.id,
-                        full_name: fullName,
-                        username,
-                        // Don't include district/mobile
-                        // Utilize available avatarUrl from state, might miss new upload if any, but safer
-                        avatar_url: avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
-                        updated_at: new Date().toISOString()
+                        full_name: fullName.trim(),
+                        username: username.trim(),
+                        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName.trim())}&background=random`,
+                        updated_at: new Date().toISOString(),
                     });
-
                     if (!retryError) {
                         router.push('/dashboard');
                         return;
@@ -159,169 +122,92 @@ export default function OnboardingPage() {
                 }
             }
 
-            setErrors({ ...errors, form: error.message || 'An error occurred. Please try again.' });
+            setErrors({ form: error.message || 'Something went wrong. Please try again.' });
         } finally {
             setLoading(false);
         }
     };
 
+    if (checking) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                <Loader2 className="animate-spin text-primary" size={32} />
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col md:flex-row">
-
-                {/* Left Side - Visual */}
-                <div className="bg-slate-900 p-8 hidden md:flex flex-col justify-between w-1/3">
-                    <div>
-                        <div className="flex items-center gap-2 mb-8">
-                            <Image src="/logo.svg" width={32} height={32} alt="Logo" />
-                            <span className="text-white font-bold text-xl">sangram</span>
-                        </div>
-                        <h2 className="text-2xl font-bold text-white mb-4">Complete your profile</h2>
-                        <p className="text-slate-400 text-sm">To give you the best experience, we need to know a little bit about you.</p>
+            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-br from-indigo-600 to-purple-600 p-8 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                        <Image src="/logo.svg" width={36} height={36} alt="Logo" />
+                        <span className="text-white font-bold text-2xl">sangram</span>
                     </div>
-
-                    <div className="space-y-2">
-                        <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-500 w-1/2"></div>
-                        </div>
-                        <p className="text-xs text-slate-500">Step 1 of 2</p>
-                    </div>
+                    <h2 className="text-xl font-bold text-white mb-1">Welcome! Let&apos;s set you up</h2>
+                    <p className="text-indigo-200 text-sm">Just two quick things and you&apos;re good to go.</p>
                 </div>
 
-                {/* Right Side - Form */}
-                <div className="p-8 w-full md:w-2/3">
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 md:hidden">Complete Profile</h1>
-
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Form */}
+                <div className="p-8">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         {errors.form && (
-                            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{errors.form}</div>
+                            <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-xl border border-red-100 dark:border-red-800">
+                                {errors.form}
+                            </div>
                         )}
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Full Name <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={fullName}
-                                    onChange={e => setFullName(e.target.value)}
-                                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="Your full name"
-                                />
-                                {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
-                            </div>
+                        {/* Full Name */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                Your Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={fullName}
+                                onChange={e => setFullName(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-lg"
+                                placeholder="What should we call you?"
+                                autoFocus
+                            />
+                            {errors.fullName && <p className="text-xs text-red-500 mt-1.5">{errors.fullName}</p>}
+                            <p className="text-xs text-slate-500 mt-1.5">This is your display name on the leaderboard.</p>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Username <span className="text-red-500">*</span>
-                                </label>
+                        {/* Username */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                Username <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">@</span>
                                 <input
                                     type="text"
                                     value={username}
-                                    onChange={e => setUsername(e.target.value.toLowerCase())}
-                                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="Choose a username"
+                                    onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))}
+                                    className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-lg"
+                                    placeholder="pick_a_username"
                                 />
-                                <p className="text-xs text-slate-500 mt-1">Only lowercase letters, numbers, dots, and underscores.</p>
-                                {errors.username && <p className="text-xs text-red-500 mt-1">{errors.username}</p>}
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        District (Optional)
-                                    </label>
-                                    <select
-                                        value={district}
-                                        onChange={e => setDistrict(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    >
-                                        <option value="">Select District</option>
-                                        {KERALA_DISTRICTS.map(d => (
-                                            <option key={d} value={d}>{d}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                        Mobile (Optional)
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        value={mobile}
-                                        onChange={e => setMobile(e.target.value)}
-                                        className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                        placeholder="Mobile number"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-                                    Profile Picture
-                                </label>
-                                <div className="flex items-center gap-6">
-                                    <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
-                                        <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg bg-slate-100 dark:bg-slate-800">
-                                            {avatarFile ? (
-                                                <img
-                                                    src={URL.createObjectURL(avatarFile)}
-                                                    alt="Preview"
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            ) : avatarUrl && avatarUrl.startsWith('http') ? (
-                                                <img
-                                                    src={avatarUrl}
-                                                    alt="Current"
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="h-full w-full flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400">
-                                                    <User size={32} />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Camera size={24} className="text-white" />
-                                        </div>
-                                    </div>
-                                    <div className="flex-1">
-                                        <input
-                                            type="file"
-                                            id="avatar-upload"
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) setAvatarFile(file);
-                                            }}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => document.getElementById('avatar-upload')?.click()}
-                                            className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
-                                        >
-                                            Choose Image
-                                        </button>
-                                        <p className="mt-2 text-xs text-slate-500">
-                                            JPG, PNG or GIF. Max 2MB.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                            {errors.username && <p className="text-xs text-red-500 mt-1.5">{errors.username}</p>}
+                            <p className="text-xs text-slate-500 mt-1.5">Lowercase letters, numbers, dots, underscores. You can change this once every 14 days.</p>
                         </div>
 
-                        <div className="pt-4">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {loading ? 'Saving Profile...' : 'Complete Setup'}
-                            </button>
-                        </div>
+                        {/* Submit */}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg flex items-center justify-center gap-2"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 className="animate-spin" size={20} /> Setting up...
+                                </>
+                            ) : (
+                                "Let's Go! 🚀"
+                            )}
+                        </button>
                     </form>
                 </div>
             </div>

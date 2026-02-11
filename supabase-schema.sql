@@ -32,6 +32,7 @@ BEGIN
     -- Add columns if they don't exist
     BEGIN ALTER TABLE public.profiles ADD COLUMN district TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
     BEGIN ALTER TABLE public.profiles ADD COLUMN mobile TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
+    BEGIN ALTER TABLE public.profiles ADD COLUMN username_changed_at TIMESTAMPTZ; EXCEPTION WHEN duplicate_column THEN NULL; END;
   END IF;
 END $$;
 

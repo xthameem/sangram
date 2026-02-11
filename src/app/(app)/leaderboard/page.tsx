@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import {
@@ -118,8 +117,8 @@ export default function LeaderboardPage() {
             {/* User's Own Rank */}
             {userRank && (
                 <div className={`rounded-2xl p-5 border ${userRank.rank
-                        ? 'border-primary/30 bg-primary/5'
-                        : 'border-yellow-500/30 bg-yellow-500/5'
+                    ? 'border-primary/30 bg-primary/5'
+                    : 'border-yellow-500/30 bg-yellow-500/5'
                     }`}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -177,8 +176,8 @@ export default function LeaderboardPage() {
                             key={entry.user_id}
                             onClick={() => setSelectedUser(selectedUser?.user_id === entry.user_id ? null : entry)}
                             className={`w-full text-left rounded-2xl border p-4 transition-all duration-200 ${selectedUser?.user_id === entry.user_id
-                                    ? 'border-primary/30 bg-primary/5 shadow-md'
-                                    : 'border-border bg-card hover:border-primary/20 hover:shadow-sm'
+                                ? 'border-primary/30 bg-primary/5 shadow-md'
+                                : 'border-border bg-card hover:border-primary/20 hover:shadow-sm'
                                 } ${entry.rank <= 3 ? 'py-5' : ''}`}
                         >
                             <div className="flex items-center gap-4">
@@ -188,12 +187,8 @@ export default function LeaderboardPage() {
                                 </div>
 
                                 {/* Avatar */}
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm overflow-hidden">
-                                    {entry.avatar_url ? (
-                                        <Image src={entry.avatar_url} alt={entry.username} width={40} height={40} className="rounded-full" />
-                                    ) : (
-                                        (entry.full_name || entry.username || 'A').substring(0, 2).toUpperCase()
-                                    )}
+                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                                    {(entry.full_name || entry.username || 'A').substring(0, 2).toUpperCase()}
                                 </div>
 
                                 {/* User Info */}
