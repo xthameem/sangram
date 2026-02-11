@@ -279,39 +279,66 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Quick Actions */}
-            <div className="grid md:grid-cols-2 gap-4">
-                <Link
-                    href="/keam/chapterwise"
-                    className="flex items-center justify-between p-5 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all group"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+            {/* Exams */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                    {
+                        name: 'KEAM',
+                        description: 'Kerala Engineering & Medical',
+                        href: '/keam',
+                        available: true,
+                        gradient: 'from-indigo-500 to-purple-500',
+                        bgGlow: 'group-hover:shadow-indigo-500/10',
+                    },
+                    {
+                        name: 'NEET',
+                        description: 'Medical Entrance',
+                        href: '#',
+                        available: false,
+                        gradient: 'from-green-500 to-emerald-500',
+                        bgGlow: '',
+                    },
+                    {
+                        name: 'CUSAT',
+                        description: 'Cochin University',
+                        href: '#',
+                        available: false,
+                        gradient: 'from-blue-500 to-cyan-500',
+                        bgGlow: '',
+                    },
+                    {
+                        name: 'JEE',
+                        description: 'Joint Entrance Exam',
+                        href: '#',
+                        available: false,
+                        gradient: 'from-orange-500 to-red-500',
+                        bgGlow: '',
+                    },
+                ].map(exam => (
+                    <Link
+                        key={exam.name}
+                        href={exam.available ? exam.href : '#'}
+                        className={`group relative rounded-2xl border p-5 transition-all duration-300 ${exam.available
+                                ? `border-border bg-card hover:border-primary/30 hover:shadow-lg ${exam.bgGlow}`
+                                : 'border-border bg-card/50 opacity-60 cursor-default'
+                            }`}
+                    >
+                        <div className={`inline-flex p-2.5 rounded-xl bg-gradient-to-br ${exam.gradient} text-white mb-3 shadow-lg`}>
                             <GraduationCap size={22} />
                         </div>
-                        <div>
-                            <p className="font-semibold text-foreground">Chapterwise Practice</p>
-                            <p className="text-xs text-muted-foreground">Continue your preparation</p>
-                        </div>
-                    </div>
-                    <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                </Link>
-
-                <Link
-                    href="/leaderboard"
-                    className="flex items-center justify-between p-5 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all group"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 text-white">
-                            <Trophy size={22} />
-                        </div>
-                        <div>
-                            <p className="font-semibold text-foreground">Leaderboard</p>
-                            <p className="text-xs text-muted-foreground">See how you rank</p>
-                        </div>
-                    </div>
-                    <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                </Link>
+                        <h3 className="font-bold text-foreground text-lg">{exam.name}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">{exam.description}</p>
+                        {exam.available ? (
+                            <div className="mt-3 flex items-center gap-1 text-primary text-sm font-medium group-hover:gap-2 transition-all">
+                                Open <ChevronRight size={14} />
+                            </div>
+                        ) : (
+                            <span className="mt-3 inline-block px-2 py-0.5 rounded-full bg-secondary text-xs text-muted-foreground font-medium">
+                                Coming Soon
+                            </span>
+                        )}
+                    </Link>
+                ))}
             </div>
 
             {/* Empty State */}
