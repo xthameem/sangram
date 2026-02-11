@@ -12,19 +12,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { questionId, isCorrect, timeTaken, isMockTest } = body;
+    const { questionId, isCorrect, timeTaken } = body;
 
     // Resolve questionId (slug) to UUID if necessary
     let validQuestionId = questionId;
 
-    // Check if questionId is a UUID (simple regex check)
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(questionId);
 
     if (!isUuid) {
-        // It's a slug! Find the corresponding UUID from DB
-
-        // 1. Try finding by 'slug' column (if it exists)
-        const { data: qData, error: qError } = await supabase
+        // It's a slug — find corresponding UUID from DB
+        const { data: qData } = await supabase
             .from('questions')
             .select('id')
             .eq('slug', questionId)
@@ -33,12 +30,10 @@ export async function POST(request: Request) {
         if (qData) {
             validQuestionId = qData.id;
         } else {
-            // 2. Fallback: Slug column might be missing or empty.
-            // Look up the Question Text from local data using the slug
+            // Fallback: find by question_text from local data
             const localQuestion = allQuestions.find(q => q.slug === questionId);
 
             if (localQuestion) {
-                // Try finding by 'question_text' in DB
                 const { data: textData } = await supabase
                     .from('questions')
                     .select('id')
@@ -48,7 +43,7 @@ export async function POST(request: Request) {
                 if (textData) {
                     validQuestionId = textData.id;
                 } else {
-                    return NextResponse.json({ error: 'Question not found in DB even by text match. Please run seed.' }, { status: 404 });
+                    return NextResponse.json({ error: 'Question not found in DB. Please run seed.' }, { status: 404 });
                 }
             } else {
                 return NextResponse.json({ error: 'Invalid question slug provided' }, { status: 400 });
@@ -56,7 +51,7 @@ export async function POST(request: Request) {
         }
     }
 
-    // Check existing progress (First Attempt Logic)
+    // Check existing progress
     const { data: existingProgress } = await supabase
         .from('user_progress')
         .select('id, is_correct')
@@ -65,7 +60,6 @@ export async function POST(request: Request) {
         .single();
 
     const isFirstAttempt = !existingProgress;
-    const wasAlreadyCorrect = existingProgress?.is_correct === true;
 
     // Upsert progress
     const { error } = await supabase
@@ -84,94 +78,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // LEADERBOARD SCORING (First correct answer = +1 point)
-    let pointsEarned = 0;
-
-    if (isCorrect && isFirstAttempt && !wasAlreadyCorrect) {
-        if (isMockTest) {
-            pointsEarned = 0; // Mock test handles its own scoring
-        } else {
-            pointsEarned = 1;
-        }
-    }
-
-    if (pointsEarned > 0) {
-        // Update Leaderboard
-        const { data: currentScore } = await supabase
-            .from('leaderboard')
-            .select('score, total_attempts, correct_answers')
-            .eq('user_id', user.id)
-            .single();
-
-        if (currentScore) {
-            await supabase
-                .from('leaderboard')
-                .update({
-                    score: currentScore.score + pointsEarned,
-                    total_attempts: currentScore.total_attempts + 1,
-                    correct_answers: isCorrect ? currentScore.correct_answers + 1 : currentScore.correct_answers,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('user_id', user.id);
-        } else {
-            const { data: userProfile } = await supabase
-                .from('users')
-                .select('username')
-                .eq('id', user.id)
-                .single();
-
-            await supabase
-                .from('leaderboard')
-                .insert({
-                    user_id: user.id,
-                    username: userProfile?.username || 'Anonymous',
-                    score: pointsEarned,
-                    total_attempts: 1,
-                    correct_answers: isCorrect ? 1 : 0,
-                });
-        }
-    } else if (isFirstAttempt) {
-        // Track first attempt even if wrong
-        const { data: currentScore } = await supabase
-            .from('leaderboard')
-            .select('score, total_attempts, correct_answers')
-            .eq('user_id', user.id)
-            .single();
-
-        if (currentScore) {
-            await supabase
-                .from('leaderboard')
-                .update({
-                    total_attempts: currentScore.total_attempts + 1,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('user_id', user.id);
-        } else {
-            const { data: userProfile } = await supabase
-                .from('users')
-                .select('username')
-                .eq('id', user.id)
-                .single();
-
-            await supabase
-                .from('leaderboard')
-                .insert({
-                    user_id: user.id,
-                    username: userProfile?.username || 'Anonymous',
-                    score: 0,
-                    total_attempts: 1,
-                    correct_answers: 0,
-                });
-        }
-    }
+    // Leaderboard is auto-computed via SQL VIEW from user_progress
+    // No need to manually update a leaderboard table
 
     return NextResponse.json({
         success: true,
         isFirstAttempt,
-        pointsEarned,
-        message: isCorrect && isFirstAttempt
-            ? `+${pointsEarned} point added!`
-            : 'Progress saved'
+        isCorrect,
+        message: isCorrect
+            ? (isFirstAttempt ? 'Correct! Progress saved.' : 'Correct!')
+            : 'Incorrect. Try reviewing the explanation.'
     });
 }
 

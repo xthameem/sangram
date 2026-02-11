@@ -1,84 +1,97 @@
 'use client';
 
 import Link from 'next/link';
-import { Atom, FlaskConical, Calculator, ChevronRight } from 'lucide-react';
-
-const subjects = [
-    {
-        id: 'physics',
-        name: 'Physics',
-        icon: Atom,
-        color: 'from-blue-500 to-cyan-500',
-        available: true,
-        chapters: ['Laws of Motion', 'Gravitation', 'Oscillations', 'Waves']
-    },
-    {
-        id: 'chemistry',
-        name: 'Chemistry',
-        icon: FlaskConical,
-        color: 'from-green-500 to-emerald-500',
-        available: true,
-        chapters: ['Structure of Atom', 'Thermodynamics']
-    },
-    {
-        id: 'maths',
-        name: 'Mathematics',
-        icon: Calculator,
-        color: 'from-purple-500 to-pink-500',
-        available: true,
-        chapters: ['Trigonometry', 'Probability', 'Definite Integrals']
-    },
-];
+import { ArrowLeft, BookOpen, GraduationCap, ChevronRight, Atom, FlaskConical, Calculator } from 'lucide-react';
 
 export default function ChapterwisePage() {
+    const classes = [
+        {
+            level: 11,
+            label: 'Class 11',
+            description: 'Foundation concepts in Physics, Chemistry & Mathematics',
+            icon: BookOpen,
+            gradient: 'from-blue-500 to-cyan-500',
+            bgGlow: 'bg-blue-500/5',
+            subjects: ['Physics', 'Chemistry', 'Mathematics'],
+        },
+        {
+            level: 12,
+            label: 'Class 12',
+            description: 'Advanced topics for KEAM preparation',
+            icon: GraduationCap,
+            gradient: 'from-purple-500 to-pink-500',
+            bgGlow: 'bg-purple-500/5',
+            subjects: ['Physics', 'Chemistry', 'Mathematics'],
+        },
+    ];
+
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div>
-                <h1 className="text-3xl font-bold text-foreground">Chapterwise Practice</h1>
-                <p className="text-muted-foreground mt-1">
-                    Select a subject to start practicing chapter by chapter
-                </p>
-                <p className="text-xs text-yellow-500 mt-2">💡 Tip: Mock tests give 2x leaderboard points!</p>
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Link href="/keam" className="hover:text-foreground transition-colors">KEAM</Link>
+                <ChevronRight size={14} />
+                <span className="text-foreground font-medium">Chapterwise Practice</span>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-                {subjects.map((subject) => (
-                    <div
-                        key={subject.id}
-                        className={`rounded-2xl border p-6 transition-all ${subject.available
-                            ? 'border-border bg-card hover:shadow-lg'
-                            : 'border-border bg-card/50 opacity-60'
-                            }`}
+            {/* Header */}
+            <div className="flex items-center gap-4">
+                <Link
+                    href="/keam"
+                    className="p-2 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors"
+                >
+                    <ArrowLeft size={20} />
+                </Link>
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">Chapterwise Practice</h1>
+                    <p className="text-muted-foreground mt-1">Select your class to start practicing</p>
+                </div>
+            </div>
+
+            {/* Class Selection Cards */}
+            <div className="grid md:grid-cols-2 gap-6">
+                {classes.map((cls) => (
+                    <Link
+                        key={cls.level}
+                        href={`/keam/chapterwise/${cls.level}`}
+                        className={`group relative rounded-2xl border border-border bg-card p-8 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 overflow-hidden`}
                     >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white`}>
-                                <subject.icon size={28} />
+                        {/* Background glow */}
+                        <div className={`absolute inset-0 ${cls.bgGlow} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+                        <div className="relative">
+                            {/* Icon */}
+                            <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-br ${cls.gradient} text-white mb-5 shadow-lg`}>
+                                <cls.icon size={28} />
                             </div>
-                            <span className="px-2 py-1 rounded-full bg-secondary text-xs font-medium text-muted-foreground">
-                                +1 pt/correct
-                            </span>
+
+                            {/* Title */}
+                            <h2 className="text-2xl font-bold text-foreground mb-2">{cls.label}</h2>
+                            <p className="text-muted-foreground text-sm mb-6">{cls.description}</p>
+
+                            {/* Subject pills */}
+                            <div className="flex flex-wrap gap-2 mb-6">
+                                {cls.subjects.map(subject => {
+                                    const SubjectIcon = subject === 'Physics' ? Atom : subject === 'Chemistry' ? FlaskConical : Calculator;
+                                    return (
+                                        <span
+                                            key={subject}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-sm text-foreground font-medium"
+                                        >
+                                            <SubjectIcon size={14} className="text-muted-foreground" />
+                                            {subject}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+
+                            {/* CTA */}
+                            <div className="flex items-center gap-2 text-primary font-medium text-sm group-hover:gap-3 transition-all">
+                                Start Practicing
+                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </div>
                         </div>
-
-                        <h3 className="text-xl font-semibold mb-2">{subject.name}</h3>
-
-                        {subject.available ? (
-                            <>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    {subject.chapters.length} chapters available
-                                </p>
-                                <Link
-                                    href={`/keam/chapterwise/${subject.id}`}
-                                    className="flex items-center justify-center w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-                                >
-                                    Start Practice <ChevronRight size={18} className="ml-1" />
-                                </Link>
-                            </>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">
-                                Questions will be added soon
-                            </p>
-                        )}
-                    </div>
+                    </Link>
                 ))}
             </div>
         </div>

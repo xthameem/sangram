@@ -6,6 +6,7 @@ export interface Question {
     exam: string;
     subject: string;
     chapter: string;
+    class_level?: 11 | 12;
     topic: string;
     question_text: string;
     options: string[];
@@ -15,6 +16,94 @@ export interface Question {
     hints: string[];
     year?: number;
     source?: string;
+}
+
+// Chapter → Class mapping based on KEAM syllabus
+export const chapterClassMap: Record<string, 11 | 12> = {
+    // Physics - Class 11
+    'Laws of Motion': 11,
+    'Units and Measurement': 11,
+    'Motion in One Dimension': 11,
+    'Motion in Two Dimensions': 11,
+    'Work, Energy and Power': 11,
+    'Gravitation': 11,
+    'Properties of Matter': 11,
+    'Thermodynamics': 11, // Physics Thermodynamics is Class 11
+    'Oscillations': 11,
+    'Waves': 11,
+    'Rotational Motion': 11,
+    // Physics - Class 12
+    'Electrostatics': 12,
+    'Current Electricity': 12,
+    'Moving Charges and Magnetism': 12,
+    'Magnetism and Matter': 12,
+    'Electromagnetic Induction': 12,
+    'Alternating Current': 12,
+    'Electromagnetic Waves': 12,
+    'Ray Optics': 12,
+    'Wave Optics': 12,
+    'Dual Nature of Radiation': 12,
+    'Atoms and Nuclei': 12,
+    'Semiconductor Electronics': 12,
+    'Communication Systems': 12,
+    // Chemistry - Class 11
+    'Structure of Atom': 11,
+    'Classification of Elements': 11,
+    'Chemical Bonding': 11,
+    'States of Matter': 11,
+    'Chemical Thermodynamics': 11,
+    'Equilibrium': 11,
+    'Redox Reactions': 11,
+    'Hydrogen': 11,
+    'S Block Elements': 11,
+    'P Block Elements 1': 11,
+    'Organic Chemistry Basics': 11,
+    'Hydrocarbons': 11,
+    'Environmental Chemistry': 11,
+    // Chemistry - Class 12
+    'Solid State': 12,
+    'Solutions': 12,
+    'Electrochemistry': 12,
+    'Chemical Kinetics': 12,
+    'Surface Chemistry': 12,
+    'Metallurgy': 12,
+    'P Block Elements 2': 12,
+    'D and F Block Elements': 12,
+    'Coordination Compounds': 12,
+    'Aldehydes and Ketones': 12,
+    'Alcohols Phenols Ethers': 12,
+    'Nitrogen Compounds': 12,
+    'Haloalkanes': 12,
+    'Carboxylic Acids': 12,
+    'Polymers and Biomolecules': 12,
+    // Mathematics - Class 11
+    'Trigonometry': 11,
+    'Sets and Relations': 11,
+    'Complex Numbers': 11,
+    'Sequences and Series': 11,
+    'Permutations and Combinations': 11,
+    'Binomial Theorem': 11,
+    'Mathematical Reasoning': 11,
+    'Statistics': 11,
+    'Straight Lines': 11,
+    'Conic Sections': 11,
+    'Limits and Derivatives': 11,
+    // Mathematics - Class 12
+    'Probability': 12,
+    'Definite Integrals': 12,
+    'Matrices and Determinants': 12,
+    'Continuity and Differentiability': 12,
+    'Applications of Derivatives': 12,
+    'Integrals': 12,
+    'Differential Equations': 12,
+    'Vectors': 12,
+    'Three Dimensional Geometry': 12,
+    'Linear Programming': 12,
+};
+
+// Helper to get class level for a chapter
+export function getClassLevel(chapter: string): 11 | 12 {
+    return chapterClassMap[chapter] || 11;
 }
 
 export const physicsQuestions: Question[] = [
@@ -178,3 +267,36 @@ export const mathsQuestions: Question[] = [
 ];
 
 export const allQuestions = [...physicsQuestions, ...chemistryQuestions, ...mathsQuestions];
+
+// All questions with class_level populated
+export const allQuestionsWithClass = allQuestions.map(q => ({
+    ...q,
+    class_level: q.class_level || getClassLevel(q.chapter),
+}));
+
+// Get unique chapters for a given class level  
+export function getChaptersByClass(classLevel: 11 | 12) {
+    const chapters = new Map<string, { chapter: string; subject: string; count: number }>();
+    allQuestionsWithClass
+        .filter(q => q.class_level === classLevel)
+        .forEach(q => {
+            const key = q.chapter;
+            if (chapters.has(key)) {
+                chapters.get(key)!.count++;
+            } else {
+                chapters.set(key, { chapter: q.chapter, subject: q.subject, count: 1 });
+            }
+        });
+    return Array.from(chapters.values());
+}
+
+// Create a URL-safe slug from a chapter name
+export function chapterToSlug(chapter: string): string {
+    return chapter.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+// Reverse: find chapter name from slug
+export function slugToChapter(slug: string): string | undefined {
+    const allChapters = new Set(allQuestions.map(q => q.chapter));
+    return Array.from(allChapters).find(ch => chapterToSlug(ch) === slug);
+}

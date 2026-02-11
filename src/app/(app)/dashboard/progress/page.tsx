@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import {
-    BookOpen, Target, Trophy, Clock, CheckCircle2, XCircle,
-    TrendingUp, BarChart3, Zap, Award, ChevronRight
+    BookOpen, Target, Trophy, CheckCircle2, XCircle,
+    TrendingUp, BarChart3, Award, ChevronRight, Loader2,
+    Atom, FlaskConical, Calculator
 } from 'lucide-react';
 
 interface Stats {
@@ -15,38 +16,47 @@ interface Stats {
     accuracy: number;
     totalScore: number;
     rank: number;
-    mockTestsTaken: number;
     chaptersCompleted: number;
 }
 
-interface UserInfo {
-    email: string;
-    username: string;
+interface SubjectProgress {
+    subject: string;
+    total: number;
+    solved: number;
+    attempted: number;
+    percentage: number;
+}
+
+interface ChapterProgress {
+    chapter: string;
+    slug: string;
+    total: number;
+    solved: number;
+    attempted: number;
+    subject: string;
+    class_level: number;
 }
 
 export default function ProgressPage() {
     const router = useRouter();
-    const [user, setUser] = useState<UserInfo | null>(null);
     const [loading, setLoading] = useState(true);
+    const [username, setUsername] = useState('');
     const [stats, setStats] = useState<Stats>({
         questionsAttempted: 0,
         correctAnswers: 0,
         accuracy: 0,
         totalScore: 0,
         rank: 0,
-        mockTestsTaken: 0,
         chaptersCompleted: 0,
     });
+    const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([]);
+    const [chapterProgress, setChapterProgress] = useState<ChapterProgress[]>([]);
 
     const fetchStats = async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-
             const res = await fetch('/api/dashboard/stats', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${session?.access_token}` }
             });
 
             if (res.ok) {
@@ -57,12 +67,13 @@ export default function ProgressPage() {
                     accuracy: data.accuracy || 0,
                     totalScore: data.score || 0,
                     rank: data.rank || 0,
-                    mockTestsTaken: data.mockTests || 0,
                     chaptersCompleted: data.chapters || 0,
                 });
+                setSubjectProgress(data.subjectProgress || []);
+                setChapterProgress(data.chapterProgress || []);
             }
         } catch (e) {
-            console.log('Stats fetch error', e);
+            console.error('Stats fetch error', e);
         }
     };
 
@@ -76,15 +87,10 @@ export default function ProgressPage() {
                     return;
                 }
 
-                setUser({
-                    email: authUser.email || '',
-                    username: authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'User',
-                });
-
-                // Initial Fetch
+                setUsername(authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'User');
                 await fetchStats();
 
-                // Real-time Subscription for MY progress
+                // Real-time subscription
                 const channel = supabase
                     .channel('my-progress-updates')
                     .on(
@@ -95,16 +101,13 @@ export default function ProgressPage() {
                             table: 'user_progress',
                             filter: `user_id=eq.${authUser.id}`
                         },
-                        () => {
-                            fetchStats();
-                        }
+                        () => fetchStats()
                     )
                     .subscribe();
 
                 return () => {
                     supabase.removeChannel(channel);
                 };
-
             } catch (error) {
                 console.error('Auth error:', error);
                 router.push('/');
@@ -116,17 +119,24 @@ export default function ProgressPage() {
         checkAuth();
     }, [router]);
 
+    const subjectIcons: Record<string, React.ElementType> = {
+        'Physics': Atom,
+        'Chemistry': FlaskConical,
+        'Mathematics': Calculator,
+    };
+    const subjectColors: Record<string, { text: string; bg: string; gradient: string }> = {
+        'Physics': { text: 'text-blue-500', bg: 'bg-blue-500/10', gradient: 'from-blue-500 to-cyan-500' },
+        'Chemistry': { text: 'text-green-500', bg: 'bg-green-500/10', gradient: 'from-green-500 to-emerald-500' },
+        'Mathematics': { text: 'text-orange-500', bg: 'bg-orange-500/10', gradient: 'from-orange-500 to-amber-500' },
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Loader2 className="animate-spin text-primary" size={32} />
             </div>
         );
     }
-
-    if (!user) return null;
-
-    const userInitials = user.username.substring(0, 2).toUpperCase();
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -139,18 +149,6 @@ export default function ProgressPage() {
                     </h1>
                     <p className="text-muted-foreground mt-1">Track your preparation journey</p>
                 </div>
-                <Link
-                    href="/dashboard/profile"
-                    className="flex items-center gap-3 px-4 py-2 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors"
-                >
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                        {userInitials}
-                    </div>
-                    <div className="text-left">
-                        <div className="font-medium text-sm">{user.username}</div>
-                        <div className="text-xs text-muted-foreground">Edit Profile</div>
-                    </div>
-                </Link>
             </div>
 
             {/* Main Stats Grid */}
@@ -162,47 +160,46 @@ export default function ProgressPage() {
                         </div>
                     </div>
                     <div className="text-2xl font-bold">{stats.questionsAttempted || '-'}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Questions Attempted</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Attempted</div>
                 </div>
 
                 <div className="rounded-2xl border border-border bg-card p-5">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
-                            <Target size={20} />
+                            <CheckCircle2 size={20} />
                         </div>
                     </div>
-                    <div className="text-2xl font-bold">{stats.accuracy ? `${stats.accuracy}%` : '-'}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Accuracy Rate</div>
-                </div>
-
-                <div className="rounded-2xl border border-border bg-card p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
-                            <Trophy size={20} />
-                        </div>
-                    </div>
-                    <div className="text-2xl font-bold">{stats.totalScore || '-'}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Total Score</div>
+                    <div className="text-2xl font-bold">{stats.correctAnswers || '-'}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Solved</div>
                 </div>
 
                 <div className="rounded-2xl border border-border bg-card p-5">
                     <div className="flex items-center gap-3 mb-3">
                         <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                            <Target size={20} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold">{stats.accuracy ? `${stats.accuracy}%` : '-'}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Accuracy</div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
                             <Award size={20} />
                         </div>
                     </div>
                     <div className="text-2xl font-bold">{stats.rank ? `#${stats.rank}` : '-'}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Your Rank</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Rank</div>
                 </div>
             </div>
 
-            {/* Detailed Stats */}
+            {/* Performance Breakdown */}
             <div className="grid md:grid-cols-2 gap-6">
-                {/* Performance Breakdown */}
                 <div className="rounded-2xl border border-border bg-card p-6">
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                         <TrendingUp className="text-primary" size={20} />
-                        Performance Breakdown
+                        Performance
                     </h3>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -210,7 +207,7 @@ export default function ProgressPage() {
                                 <CheckCircle2 className="text-green-500" size={20} />
                                 <span>Correct Answers</span>
                             </div>
-                            <span className="font-bold text-green-500">{stats.correctAnswers || 0}</span>
+                            <span className="font-bold text-green-500">{stats.correctAnswers}</span>
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -221,64 +218,106 @@ export default function ProgressPage() {
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <Clock className="text-purple-500" size={20} />
-                                <span>Mock Tests Taken</span>
+                                <BookOpen className="text-blue-500" size={20} />
+                                <span>Chapters Touched</span>
                             </div>
-                            <span className="font-bold">{stats.mockTestsTaken || 0}</span>
+                            <span className="font-bold">{stats.chaptersCompleted}</span>
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <BookOpen className="text-blue-500" size={20} />
-                                <span>Chapters Completed</span>
+                                <Trophy className="text-yellow-500" size={20} />
+                                <span>Total Score</span>
                             </div>
-                            <span className="font-bold">{stats.chaptersCompleted || 0}</span>
+                            <span className="font-bold">{stats.totalScore}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Subject Progress */}
                 <div className="rounded-2xl border border-border bg-card p-6">
                     <h3 className="font-semibold mb-4 flex items-center gap-2">
-                        <Zap className="text-yellow-500" size={20} />
-                        Quick Actions
+                        <BarChart3 className="text-primary" size={20} />
+                        Subject Progress
                     </h3>
-                    <div className="space-y-3">
-                        <Link href="/keam/mocktest"
-                            className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 hover:bg-purple-500/20 transition-colors">
-                            <div className="flex items-center gap-3">
-                                <Clock className="text-purple-500" size={20} />
-                                <div>
-                                    <p className="font-medium">Take Mock Test</p>
-                                    <p className="text-xs text-muted-foreground">2x leaderboard points</p>
-                                </div>
-                            </div>
-                            <ChevronRight size={20} className="text-muted-foreground" />
-                        </Link>
-                        <Link href="/keam/chapterwise"
-                            className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border hover:bg-secondary transition-colors">
-                            <div className="flex items-center gap-3">
-                                <BookOpen className="text-blue-500" size={20} />
-                                <div>
-                                    <p className="font-medium">Practice Chapterwise</p>
-                                    <p className="text-xs text-muted-foreground">+1 point per correct</p>
-                                </div>
-                            </div>
-                            <ChevronRight size={20} className="text-muted-foreground" />
-                        </Link>
-                        <Link href="/leaderboard"
-                            className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border hover:bg-secondary transition-colors">
-                            <div className="flex items-center gap-3">
-                                <Trophy className="text-yellow-500" size={20} />
-                                <div>
-                                    <p className="font-medium">View Leaderboard</p>
-                                    <p className="text-xs text-muted-foreground">See rankings</p>
-                                </div>
-                            </div>
-                            <ChevronRight size={20} className="text-muted-foreground" />
-                        </Link>
-                    </div>
+                    {subjectProgress.length > 0 ? (
+                        <div className="space-y-5">
+                            {subjectProgress.map(sp => {
+                                const Icon = subjectIcons[sp.subject] || BookOpen;
+                                const colors = subjectColors[sp.subject] || { text: 'text-primary', bg: 'bg-primary/10', gradient: 'from-primary to-primary' };
+                                return (
+                                    <div key={sp.subject}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`p-1 rounded ${colors.bg} ${colors.text}`}>
+                                                    <Icon size={14} />
+                                                </div>
+                                                <span className="text-sm font-medium">{sp.subject}</span>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground">{sp.solved}/{sp.total}</span>
+                                        </div>
+                                        <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full bg-gradient-to-r ${colors.gradient} rounded-full transition-all duration-700`}
+                                                style={{ width: `${sp.percentage}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                            No progress data yet. Start practicing!
+                        </p>
+                    )}
                 </div>
             </div>
+
+            {/* Chapter Progress */}
+            {chapterProgress.length > 0 && (
+                <div className="rounded-2xl border border-border bg-card p-6">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                        <BookOpen className="text-primary" size={20} />
+                        Chapter-wise Progress
+                    </h3>
+                    <div className="space-y-3">
+                        {chapterProgress.map(cp => {
+                            const progress = cp.total > 0 ? Math.round((cp.solved / cp.total) * 100) : 0;
+                            const colors = subjectColors[cp.subject] || { gradient: 'from-primary to-primary' };
+
+                            return (
+                                <Link
+                                    key={cp.chapter}
+                                    href={`/keam/chapterwise/${cp.class_level}/${cp.slug}`}
+                                    className="block group"
+                                >
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                                {cp.chapter}
+                                            </span>
+                                            <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{cp.subject}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-green-500 font-medium">{cp.solved} solved</span>
+                                            {cp.attempted > 0 && (
+                                                <span className="text-xs text-red-500">{cp.attempted - cp.solved} wrong</span>
+                                            )}
+                                            <span className="text-xs text-muted-foreground">/ {cp.total}</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full bg-gradient-to-r ${colors.gradient} rounded-full transition-all duration-500`}
+                                            style={{ width: `${progress}%` }}
+                                        />
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Empty State */}
             {stats.questionsAttempted === 0 && (
@@ -288,7 +327,7 @@ export default function ProgressPage() {
                     <p className="text-muted-foreground text-sm mb-4">
                         Start solving questions to see your progress stats here!
                     </p>
-                    <Link href="/keam" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+                    <Link href="/keam/chapterwise" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
                         Start Practicing <ChevronRight size={18} />
                     </Link>
                 </div>

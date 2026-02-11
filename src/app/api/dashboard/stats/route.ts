@@ -1,76 +1,126 @@
+import { createClient } from '@/lib/server-supabase';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { allQuestionsWithClass, getClassLevel, chapterToSlug } from '@/data/questions';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+export async function GET() {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-export async function GET(request: Request) {
-    // Get user from auth header or session (Supabase Auth Helper cleaner, but using simple client here)
-    // We need to parse the cookie manually or just use headers if forwarded.
-    // Actually, in App Router API routes, we should use createRouteHandlerClient. 
-    // But since I don't have that setup ready, I'll trust the user is authenticated via client
-    // BUT best practice: Use getUser() with cookie store.
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-    // For now, I'll rely on the client sending usage stats via a separate secure call,
-    // OR easier: just fetch all rows match user via specific client? 
-    // No, I need the user ID. 
-    // I'll grab it from the request headers if passed, or better, use `supabase.auth.getUser(token)`.
+        // Fetch all user progress
+        const { data: progress, error: progressError } = await supabase
+            .from('user_progress')
+            .select('question_id, is_correct, created_at')
+            .eq('user_id', user.id);
 
-    // Let's assume standard auth header 'Authorization: Bearer <token>'
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (progressError) {
+            console.error('Progress fetch error:', progressError);
+        }
+
+        const userProgress = progress || [];
+
+        // Fetch question details from DB to map question_id to chapter/subject
+        const { data: dbQuestions } = await supabase
+            .from('questions')
+            .select('id, slug, subject, chapter');
+
+        // Build mapping from question_id to question details
+        const questionMap = new Map<string, { subject: string; chapter: string; class_level: 11 | 12 }>();
+        if (dbQuestions) {
+            for (const dbQ of dbQuestions) {
+                // Find matching local question for class_level
+                const localQ = allQuestionsWithClass.find(q => q.slug === dbQ.slug);
+                questionMap.set(dbQ.id, {
+                    subject: dbQ.subject || localQ?.subject || 'Unknown',
+                    chapter: dbQ.chapter || localQ?.chapter || 'Unknown',
+                    class_level: localQ?.class_level || getClassLevel(dbQ.chapter || ''),
+                });
+            }
+        }
+
+        // Calculate stats
+        const totalAttempts = userProgress.length;
+        const correctAnswers = userProgress.filter(p => p.is_correct).length;
+        const accuracy = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 1000) / 10 : 0;
+
+        // Chapter-wise progress
+        const chapterProgress: Record<string, { total: number; solved: number; attempted: number; subject: string; class_level: 11 | 12 }> = {};
+
+        for (const p of userProgress) {
+            const qInfo = questionMap.get(p.question_id);
+            if (!qInfo) continue;
+
+            const chapter = qInfo.chapter;
+            if (!chapterProgress[chapter]) {
+                // Count total questions for this chapter from local data
+                const totalInChapter = allQuestionsWithClass.filter(q => q.chapter === chapter).length;
+                chapterProgress[chapter] = {
+                    total: totalInChapter,
+                    solved: 0,
+                    attempted: 0,
+                    subject: qInfo.subject,
+                    class_level: qInfo.class_level,
+                };
+            }
+
+            chapterProgress[chapter].attempted++;
+            if (p.is_correct) {
+                chapterProgress[chapter].solved++;
+            }
+        }
+
+        // Subject-wise progress
+        const subjectProgress: Record<string, { total: number; solved: number; attempted: number }> = {};
+        for (const [, info] of Object.entries(chapterProgress)) {
+            if (!subjectProgress[info.subject]) {
+                const totalInSubject = allQuestionsWithClass.filter(q => q.subject === info.subject).length;
+                subjectProgress[info.subject] = { total: totalInSubject, solved: 0, attempted: 0 };
+            }
+            subjectProgress[info.subject].solved += info.solved;
+            subjectProgress[info.subject].attempted += info.attempted;
+        }
+
+        // Calculate score (same formula as leaderboard view)
+        const score = correctAnswers * 10 + (totalAttempts >= 10 ? Math.round((correctAnswers / totalAttempts) * 50) : 0);
+
+        // Get rank from leaderboard
+        const { data: leaderboard } = await supabase
+            .from('leaderboard')
+            .select('user_id, score')
+            .order('score', { ascending: false });
+
+        let rank = 0;
+        if (leaderboard) {
+            const idx = leaderboard.findIndex(l => l.user_id === user.id);
+            rank = idx >= 0 ? idx + 1 : 0;
+        }
+
+        return NextResponse.json({
+            totalAttempts,
+            correctAnswers,
+            accuracy,
+            score,
+            rank,
+            mockTests: 0,
+            chapters: Object.keys(chapterProgress).length,
+            chapterProgress: Object.entries(chapterProgress).map(([chapter, data]) => ({
+                chapter,
+                slug: chapterToSlug(chapter),
+                ...data,
+            })),
+            subjectProgress: Object.entries(subjectProgress).map(([subject, data]) => ({
+                subject,
+                ...data,
+                percentage: data.total > 0 ? Math.round((data.solved / data.total) * 100) : 0,
+            })),
+        });
+
+    } catch (error) {
+        console.error('Dashboard stats error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // 1. Fetch User Progress Stats
-    const { data: progress, error: progressError } = await supabase
-        .from('user_progress')
-        .select('is_correct, time_spent_seconds, question_id')
-        .eq('user_id', user.id);
-
-    if (progressError) {
-        return NextResponse.json({ error: progressError.message }, { status: 500 });
-    }
-
-    const totalAttempts = progress.length;
-    const correctAnswers = progress.filter(p => p.is_correct).length;
-    const accuracy = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-
-    // Simple score logic: +4 for correct, -1 for wrong (standard JEE/KEAM)
-    // Or just +4 for now as per user preference (no negative in leaderboard, but maybe here?)
-    // User requested "No negative marking in leaderboard". 
-    // I'll use +4 for correct only here to match "Score".
-    const score = correctAnswers * 4;
-
-    // 2. Fetch Rank from Leaderboard View
-    const { data: leaderboardData } = await supabase
-        .from('leaderboard')
-        .select('user_id')
-        .order('score', { ascending: false })
-        .order('correct_answers', { ascending: false });
-
-    const rank = leaderboardData ? leaderboardData.findIndex(u => u.user_id === user.id) + 1 : 0;
-
-    // 3. Mock Tests & Chapters (Estimate)
-    // We can count unique chapters from questions joined? Too complex.
-    // Just return 0 for now or simple count.
-
-    return NextResponse.json({
-        totalAttempts,
-        correctAnswers,
-        accuracy,
-        score,
-        rank,
-        mockTests: 0, // Todo: track mock tests
-        chapters: 0, // Todo: track unique chapters
-    });
 }

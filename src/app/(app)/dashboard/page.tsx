@@ -3,238 +3,333 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import {
-    ChevronRight, Atom, FlaskConical, Calculator, Lock, ArrowRight, MapPin, Target, Edit
+    BookOpen, Target, Trophy, CheckCircle2, ChevronRight,
+    Atom, FlaskConical, Calculator, GraduationCap, TrendingUp,
+    BarChart3, Loader2
 } from 'lucide-react';
 
-const exams = [
-    { id: 'keam', name: 'KEAM', available: true, description: 'Kerala Engineering & Medical' },
-    { id: 'cusat', name: 'CUSAT CAT', available: false, description: 'Cochin University' },
-    { id: 'jee', name: 'JEE Main', available: false, description: 'Joint Entrance Exam' },
-    { id: 'neet', name: 'NEET', available: false, description: 'Medical Entrance' },
-];
-
-const subjects = [
-    { id: 'physics', name: 'Physics', icon: Atom, color: 'from-blue-500 to-cyan-500' },
-    { id: 'chemistry', name: 'Chemistry', icon: FlaskConical, color: 'from-green-500 to-emerald-500' },
-    { id: 'maths', name: 'Mathematics', icon: Calculator, color: 'from-purple-500 to-pink-500' },
-];
-
-interface Profile {
+interface UserProfile {
+    email: string;
     username: string;
     full_name: string;
     avatar_url: string;
-    district: string;
-    target_exam: string;
+    exam: string;
+}
+
+interface SubjectProgress {
+    subject: string;
+    total: number;
+    solved: number;
+    attempted: number;
+    percentage: number;
+}
+
+interface ChapterProgress {
+    chapter: string;
+    slug: string;
+    total: number;
+    solved: number;
+    attempted: number;
+    subject: string;
+    class_level: number;
 }
 
 export default function DashboardPage() {
     const router = useRouter();
-    const [profile, setProfile] = useState<Profile | null>(null);
+    const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
+    // Stats
+    const [totalAttempts, setTotalAttempts] = useState(0);
+    const [correctAnswers, setCorrectAnswers] = useState(0);
+    const [accuracy, setAccuracy] = useState(0);
+    const [rank, setRank] = useState(0);
+    const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([]);
+    const [chapterProgress, setChapterProgress] = useState<ChapterProgress[]>([]);
 
-                if (!user) {
+    useEffect(() => {
+        const init = async () => {
+            try {
+                const { data: { user: authUser } } = await supabase.auth.getUser();
+                if (!authUser) {
                     router.push('/');
                     return;
                 }
 
-                const { data } = await supabase
+                // Fetch profile
+                const { data: profile } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('id', user.id)
+                    .eq('id', authUser.id)
                     .single();
 
-                if (data) {
-                    setProfile(data);
-                } else {
-                    setProfile({
-                        username: user.email?.split('@')[0] || 'User',
-                        full_name: 'Student',
-                        avatar_url: '',
-                        district: '',
-                        target_exam: 'KEAM'
-                    });
+                if (!profile?.username) {
+                    router.push('/onboarding');
+                    return;
+                }
+
+                setUser({
+                    email: authUser.email || '',
+                    username: profile.username || '',
+                    full_name: profile.full_name || profile.username || '',
+                    avatar_url: profile.avatar_url || '',
+                    exam: profile.exam || 'KEAM',
+                });
+
+                // Fetch stats
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch('/api/dashboard/stats', {
+                    headers: { Authorization: `Bearer ${session?.access_token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setTotalAttempts(data.totalAttempts || 0);
+                    setCorrectAnswers(data.correctAnswers || 0);
+                    setAccuracy(data.accuracy || 0);
+                    setRank(data.rank || 0);
+                    setSubjectProgress(data.subjectProgress || []);
+                    setChapterProgress(data.chapterProgress || []);
                 }
             } catch (error) {
-                console.error('Auth error:', error);
+                console.error('Init error:', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchProfile();
+        init();
     }, [router]);
+
+    const subjectIcons: Record<string, React.ElementType> = {
+        'Physics': Atom,
+        'Chemistry': FlaskConical,
+        'Mathematics': Calculator,
+    };
+    const subjectColors: Record<string, { text: string; bg: string; gradient: string }> = {
+        'Physics': { text: 'text-blue-500', bg: 'bg-blue-500/10', gradient: 'from-blue-500 to-cyan-500' },
+        'Chemistry': { text: 'text-green-500', bg: 'bg-green-500/10', gradient: 'from-green-500 to-emerald-500' },
+        'Mathematics': { text: 'text-orange-500', bg: 'bg-orange-500/10', gradient: 'from-orange-500 to-amber-500' },
+    };
 
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
+                <Loader2 className="animate-spin text-primary" size={32} />
             </div>
         );
     }
 
-    if (!profile) return null;
+    if (!user) return null;
 
-    const userInitials = profile.full_name
-        ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-        : profile.username.substring(0, 2).toUpperCase();
+    const userInitials = user.username.substring(0, 2).toUpperCase();
 
     return (
-        <div className="pb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-
-                {/* Left Sidebar - Profile Information */}
-                <div className="lg:col-span-1">
-                    <div className="sticky top-24 space-y-6">
-                        {/* Profile Card */}
-                        <div className="rounded-2xl border border-border bg-card shadow-sm p-6 flex flex-col items-center text-center">
-                            <div className="relative mb-4 h-20 w-20 overflow-hidden rounded-full border-4 border-slate-100 dark:border-slate-700 shadow-lg">
-                                {profile.avatar_url && profile.avatar_url.startsWith('http') ? (
-                                    <img
-                                        src={profile.avatar_url}
-                                        alt={profile.full_name}
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl font-bold">
-                                        {userInitials}
-                                    </div>
-                                )}
-                            </div>
-
-                            <h2 className="text-lg font-bold text-foreground truncate w-full">
-                                {profile.full_name}
-                            </h2>
-                            <p className="text-sm text-muted-foreground mb-4">@{profile.username}</p>
-
-                            <div className="w-full space-y-2 pt-4 border-t border-slate-100 dark:border-slate-700 text-sm">
-                                {profile.district && (
-                                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                                        <div className="flex items-center gap-2">
-                                            <MapPin size={14} />
-                                            <span>District</span>
-                                        </div>
-                                        <span className="font-medium text-slate-700 dark:text-slate-300">{profile.district}</span>
-                                    </div>
-                                )}
-                                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                                    <div className="flex items-center gap-2">
-                                        <Target size={14} />
-                                        <span>Target</span>
-                                    </div>
-                                    <span className="font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded text-xs">
-                                        {profile.target_exam || 'KEAM'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <Link
-                                href="/onboarding"
-                                className="mt-5 w-full py-2 px-4 rounded-xl border border-border bg-muted hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Edit size={14} />
-                                Edit Profile
-                            </Link>
+        <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Welcome Banner */}
+            <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                            {user.avatar_url ? (
+                                <Image src={user.avatar_url} alt={user.username} width={56} height={56} className="rounded-full" />
+                            ) : (
+                                userInitials
+                            )}
                         </div>
-
-                        {/* Quick Stats Card */}
-                        <div className="rounded-2xl border border-indigo-100 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-5">
-                            <h3 className="font-semibold mb-2 text-indigo-900 dark:text-indigo-100">Keep going! 🚀</h3>
-                            <p className="text-sm text-indigo-700 dark:text-indigo-300">View your detailed progress and stats.</p>
-                            <Link href="/dashboard/progress" className="mt-3 text-sm text-indigo-600 dark:text-indigo-400 font-medium hover:underline block">
-                                View Full Stats →
-                            </Link>
+                        <div>
+                            <h1 className="text-2xl font-bold text-foreground">
+                                Welcome back, {user.full_name || user.username}! 👋
+                            </h1>
+                            <p className="text-muted-foreground text-sm mt-0.5">
+                                @{user.username} • Preparing for {user.exam}
+                            </p>
                         </div>
                     </div>
-                </div>
-
-                {/* Right Content - Exams & Subjects */}
-                <div className="lg:col-span-3 space-y-8">
-                    {/* Welcome Section */}
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                            Hello, {profile.full_name.split(' ')[0]}! 👋
-                        </h1>
-                        <p className="text-muted-foreground mt-1">
-                            Ready to continue your preparation?
-                        </p>
-                    </div>
-
-                    {/* Exam Selection */}
-                    <div>
-                        <h2 className="text-lg font-semibold mb-4 text-foreground">Choose Your Exam</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            {exams.map((exam) => (
-                                <div
-                                    key={exam.id}
-                                    className={`relative rounded-2xl border p-5 transition-all cursor-pointer ${exam.available
-                                        ? 'border-indigo-200 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/5 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/30'
-                                        : 'border-border bg-muted/50 opacity-60 cursor-not-allowed'
-                                        }`}
-                                    onClick={() => exam.available && router.push('/keam')}
-                                >
-                                    {!exam.available && (
-                                        <div className="absolute top-3 right-3">
-                                            <Lock size={14} className="text-slate-400" />
-                                        </div>
-                                    )}
-                                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">{exam.name}</h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{exam.description}</p>
-                                    {exam.available ? (
-                                        <div className="mt-3 flex items-center text-indigo-600 dark:text-indigo-400 text-sm font-medium">
-                                            Start Practice <ArrowRight size={14} className="ml-1" />
-                                        </div>
-                                    ) : (
-                                        <div className="mt-3 text-xs text-slate-500 bg-slate-200 dark:bg-slate-700 rounded px-2 py-1 w-fit">Coming Soon</div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Subject Cards */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Quick Start - Subjects</h2>
-                            <h2 className="text-lg font-semibold text-foreground">Quick Start - Subjects</h2>
-                            <Link href="/keam/chapterwise" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-                                View All Chapters
-                            </Link>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {subjects.map((subject) => (
-                                <Link
-                                    key={subject.id}
-                                    href={`/keam/chapterwise/${subject.id}`}
-                                    className="rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/20 transition-all group"
-                                >
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className={`p-3 rounded-xl bg-gradient-to-br ${subject.color} text-white shadow-md`}>
-                                            <subject.icon size={22} />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-semibold text-slate-900 dark:text-white">{subject.name}</h3>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                Practice questions
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center text-sm text-indigo-600 dark:text-indigo-400 font-medium group-hover:gap-2 gap-1 transition-all">
-                                        Start Now <ChevronRight size={16} />
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
+                    <Link
+                        href="/keam/chapterwise"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                    >
+                        Start Practicing <ChevronRight size={18} />
+                    </Link>
                 </div>
             </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                            <BookOpen size={20} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold">{totalAttempts || '-'}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Questions Attempted</div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
+                            <CheckCircle2 size={20} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold">{correctAnswers || '-'}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Questions Solved</div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                            <Target size={20} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold">{accuracy ? `${accuracy}%` : '-'}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Accuracy</div>
+                </div>
+
+                <div className="rounded-2xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-500">
+                            <Trophy size={20} />
+                        </div>
+                    </div>
+                    <div className="text-2xl font-bold">{rank ? `#${rank}` : '-'}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Leaderboard Rank</div>
+                </div>
+            </div>
+
+            {/* Subject Progress */}
+            {subjectProgress.length > 0 && (
+                <div className="rounded-2xl border border-border bg-card p-6">
+                    <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                        <TrendingUp className="text-primary" size={20} />
+                        Subject Progress
+                    </h2>
+                    <div className="space-y-5">
+                        {subjectProgress.map(sp => {
+                            const Icon = subjectIcons[sp.subject] || BookOpen;
+                            const colors = subjectColors[sp.subject] || { text: 'text-primary', bg: 'bg-primary/10', gradient: 'from-primary to-primary' };
+
+                            return (
+                                <div key={sp.subject}>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-1.5 rounded-lg ${colors.bg} ${colors.text}`}>
+                                                <Icon size={16} />
+                                            </div>
+                                            <span className="font-medium text-sm">{sp.subject}</span>
+                                        </div>
+                                        <span className="text-sm text-muted-foreground">
+                                            {sp.solved}/{sp.total} solved ({sp.percentage}%)
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full bg-gradient-to-r ${colors.gradient} rounded-full transition-all duration-700`}
+                                            style={{ width: `${sp.percentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Chapter Progress */}
+            {chapterProgress.length > 0 && (
+                <div className="rounded-2xl border border-border bg-card p-6">
+                    <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                        <BarChart3 className="text-primary" size={20} />
+                        Chapter Progress
+                    </h2>
+                    <div className="space-y-3">
+                        {chapterProgress.slice(0, 10).map(cp => {
+                            const progress = cp.total > 0 ? Math.round((cp.solved / cp.total) * 100) : 0;
+                            const colors = subjectColors[cp.subject] || { text: 'text-primary', bg: 'bg-primary/10', gradient: 'from-primary to-primary' };
+
+                            return (
+                                <Link
+                                    key={cp.chapter}
+                                    href={`/keam/chapterwise/${cp.class_level}/${cp.slug}`}
+                                    className="block group"
+                                >
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate max-w-[200px]">
+                                                {cp.chapter}
+                                            </span>
+                                            <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{cp.subject}</span>
+                                        </div>
+                                        <span className="text-xs text-muted-foreground">{cp.solved}/{cp.total}</span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full bg-gradient-to-r ${colors.gradient} rounded-full transition-all duration-500`}
+                                            style={{ width: `${progress}%` }}
+                                        />
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-2 gap-4">
+                <Link
+                    href="/keam/chapterwise"
+                    className="flex items-center justify-between p-5 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all group"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+                            <GraduationCap size={22} />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-foreground">Chapterwise Practice</p>
+                            <p className="text-xs text-muted-foreground">Continue your preparation</p>
+                        </div>
+                    </div>
+                    <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </Link>
+
+                <Link
+                    href="/leaderboard"
+                    className="flex items-center justify-between p-5 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all group"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 text-white">
+                            <Trophy size={22} />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-foreground">Leaderboard</p>
+                            <p className="text-xs text-muted-foreground">See how you rank</p>
+                        </div>
+                    </div>
+                    <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </Link>
+            </div>
+
+            {/* Empty State */}
+            {totalAttempts === 0 && (
+                <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
+                    <BookOpen size={48} className="mx-auto mb-4 text-muted-foreground opacity-30" />
+                    <h3 className="font-semibold text-lg mb-2">Start your KEAM journey!</h3>
+                    <p className="text-muted-foreground text-sm mb-4">
+                        Practice chapter-wise questions to track your progress and climb the leaderboard.
+                    </p>
+                    <Link
+                        href="/keam/chapterwise"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                    >
+                        Start Practicing <ChevronRight size={18} />
+                    </Link>
+                </div>
+            )}
         </div>
     );
 }

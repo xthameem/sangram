@@ -119,10 +119,12 @@ export async function POST() {
 
         return NextResponse.json({
             success: errorCount === 0,
-            message: `Seeded ${successCount}/${allQuestions.length} questions`,
+            totalLocal: allQuestions.length,
+            successCount,
+            errorCount,
             hasSlugColumn,
-            errors: errors.slice(0, 10), // Only show first 10 errors
-            tip: !hasSlugColumn ? 'Run the supabase-schema.sql to add slug/title columns for better functionality' : undefined
+            errors: errors,
+            tip: !hasSlugColumn ? 'Run the supabase-schema.sql to add slug/title columns' : undefined
         });
     } catch (error) {
         console.error('Seed error:', error);
