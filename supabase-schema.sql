@@ -94,6 +94,7 @@ BEGIN
     BEGIN ALTER TABLE public.questions ADD COLUMN explanation_image_url TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
     BEGIN ALTER TABLE public.questions ADD COLUMN source TEXT; EXCEPTION WHEN duplicate_column THEN NULL; END;
     BEGIN ALTER TABLE public.questions ADD COLUMN tags JSONB; EXCEPTION WHEN duplicate_column THEN NULL; END;
+    BEGIN ALTER TABLE public.questions ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW(); EXCEPTION WHEN duplicate_column THEN NULL; END;
   END IF;
 END $$;
 
